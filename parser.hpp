@@ -1036,8 +1036,6 @@ AST_expression* parse_block(std::string &code, int& index){
             throw std::runtime_error("Block missing close brace");
         }else if(td.token == Token::LET){ // Declaration found
             block->addChild(parse_declaration(code, index));
-        }else if (td.token == Token::FUNCTION){ // Function found
-            //parse_function(code, index);
         }else if (td.token == Token::IF){ // Conditional found
             //parse_conditional(code, index);
         }else if (td.token == Token::WHILE){ // Loop found
@@ -1060,6 +1058,7 @@ AST_expression* parse_block(std::string &code, int& index){
 
 // PARSE : Function
 // - this parses a function which starts with the keyword "fn"
+// - this is used by parse_program ONLY(which means that functions cannot be nested)
 AST_expression* parse_function(std::string &code, int& index){
     TokenData t = get_token(code, index);
     if(t.token != Token::FUNCTION){
