@@ -279,7 +279,7 @@ public:
 //  - Stores condition and a body
 class AST_loop : public AST_expression{
 public:
-    AST_binary *condition;
+    AST_expression *condition;
     AST_block *body;
 
     AST_loop() : AST_expression(AST_type::LOOP) {}
@@ -288,11 +288,11 @@ public:
         print_indent(indent);
         std::cout << "Loop: {" << std::endl;
         print_indent(indent);
-        std::cout << "Condition: ";
+        std::cout << "Condition: " << std::endl;
         condition->print(indent + 1);
         print_indent(indent);
-        std::cout << " Body: ";
-        body->print(indent + 1  );
+        std::cout << "Body: " << std::endl;
+        body->print(indent + 1);
         print_indent(indent);
         std::cout << "}" << std::endl;
     }
@@ -712,6 +712,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue);
 AST_expression* parse_block(std::string&, int&);
 AST_expression* parse_function(std::string&, int&);
 AST_expression* parse_conditional(std::string&, int&);
+AST_expression* parse_loop(std::string&, int&);
 
 //  PARSE : Program
 //  - this parses the entire program
@@ -734,9 +735,9 @@ AST_program* parse_program(std::string &code){
         }else if (td.token == Token::IF){ // Conditional found
             program->addExpression(parse_conditional(code, index));
         }else if (td.token == Token::WHILE){ // Loop found
-            //parse_loop(code, index);  
+            program->addExpression(parse_loop(code, index));  
         }else if (td.token == Token::OPEN_BRACE){ 
-            program->addExpression(parse_block(code, index));
+            program->addExpression(parse_block(code, index));  // block found
         }else{
             program->addExpression(parse_expression(code, index, false));
         }
@@ -823,10 +824,6 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
             operator_stack.push(t);
         }else if(t.token == Token::CLOSE_PAREN){
             if(condition){
-                if(expr == nullptr){
-                    // Error
-                    throw std::runtime_error("Invalid expression");
-                }
                 break;
             }
             while(operator_stack.top().token != Token::OPEN_PAREN){
@@ -911,6 +908,11 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
     }
 
     expr = build_expression(operand_queue);
+
+    if(expr == nullptr){
+        // Error
+        throw std::runtime_error("Invalid expression");
+    }
 
     return expr;
 }
@@ -1058,7 +1060,7 @@ AST_expression* parse_block(std::string &code, int& index){
         }else if(td.token == Token::LET){ // Declaration found
             block->addChild(parse_declaration(code, index));
         }else if (td.token == Token::IF){ // Conditional found
-            //parse_conditional(code, index);
+            block->addChild(parse_conditional(code, index));
         }else if (td.token == Token::WHILE){ // Loop found
             //parse_loop(code, index);  
         }else if (td.token == Token::OPEN_BRACE){ 
@@ -1214,6 +1216,29 @@ AST_expression* parse_conditional(std::string &code, int& index){
     }
     
     return conditional;
+}
+
+//  PARSE: Loop
+//  - this parses a loop which starts with the keyword "while"
+AST_expression* parse_loop(std::string& code, int& index){
+    TokenData t;
+    AST_loop* loop = new AST_loop();
+    t = get_token(code, index);
+    if(t.token != Token::WHILE){
+        // Error
+        throw std::runtime_error("Expected keyword WHILE in a loop");
+    }
+
+    t = get_token(code, index);
+    if(t.token != Token::OPEN_PAREN){
+        // Error
+        throw std::runtime_error("Condition missing open paren");
+    }
+
+    loop->condition  = parse_expression(code, index, true);
+    loop->body = dynamic_cast<AST_block*>(parse_block(code, index));
+
+    return loop;
 }
 
 #endif
