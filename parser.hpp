@@ -293,22 +293,30 @@ public:
 class AST_function : public AST_expression{
 public:
     std::string name;
-    std::list <AST_variable*> parameters;
+    std::list <AST_expression*> parameters;
     AST_block *body;
 
     AST_function(std::string name) : AST_expression(AST_type::FUNCTION) {
         this->name = name;
     }
 
+    void addParameter(AST_expression* param){
+        this->parameters.push_back(param);
+    }
+
+    void setBody(AST_block* body){
+        this->body = body;
+    }
+
     void print(int indent) const {
         print_indent(indent);
-        std::cout << "Function: " << name << "(";
+        std::cout << "Function: " << name << "(" << std::endl;
         for (auto param : parameters) {
-            param->print(0);
-            std::cout << ", ";
+            param->print(indent+1);
         }
+        print_indent(indent);
         std::cout << ") {" << std::endl;
-        body->print(indent+1);
+        body->print(indent + 1);
         print_indent(indent);
         std::cout << "}" << std::endl;
     }
@@ -684,15 +692,16 @@ bool is_assignable(AST_expression* expr) {
 
 //-----------------------------------------------------------------------------------------------------------------------------
 
-AST_program* parse_program(std::string);
-AST_expression* parse_declaration(std::string, int&);
-AST_expression* parse_expression(std::string, int&);
+AST_program* parse_program(std::string&);
+AST_expression* parse_declaration(std::string&, int&);
+AST_expression* parse_expression(std::string&, int&);
 AST_expression* build_expression(std::queue<TokenData>& operand_queue);
-AST_expression* parse_block(std::string, int&);
+AST_expression* parse_block(std::string&, int&);
+AST_expression* parse_function(std::string&, int&);
 
 //  PARSE : Program
 //  - this parses the entire program
-AST_program* parse_program(std::string code){    
+AST_program* parse_program(std::string &code){    
     AST_program* program = new AST_program();
 
     int index = 0;
@@ -707,7 +716,7 @@ AST_program* parse_program(std::string code){
         if(td.token == Token::LET){ // Declaration found
             program->addExpression(parse_declaration(code, index));
         }else if (td.token == Token::FUNCTION){ // Function found
-            //parse_function(code, index);
+            program->addExpression(parse_function(code, index));
         }else if (td.token == Token::IF){ // Conditional found
             //parse_conditional(code, index);
         }else if (td.token == Token::WHILE){ // Loop found
@@ -723,7 +732,7 @@ AST_program* parse_program(std::string code){
 
 //  PARSE: Declarations
 //  - this parses a declaration
-AST_expression* parse_declaration(std::string code, int& index){
+AST_expression* parse_declaration(std::string &code, int& index){
     AST_expression *LHS, *RHS;
     TokenData t = get_token(code, index);
 
@@ -786,7 +795,7 @@ AST_expression* parse_declaration(std::string code, int& index){
 //  - this parses a general expression. This could be:
 //  - Binary operation, function call, variables, literals
 //  - This is implemented using the Shunting Yard algorithm
-AST_expression* parse_expression(std::string code, int& index){
+AST_expression* parse_expression(std::string &code, int& index){
     TokenData t = get_token(code, index);
     TokenData lastToken;
     lastToken.lexeme = "";
@@ -1003,7 +1012,11 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
     return ast_stack.empty() ? nullptr : ast_stack.top();
 }
 
-AST_expression* parse_block(std::string code, int& index){
+// PARSE : Block
+// - this parses a block of code
+// - similar to parse_program, but this is used for parsing blocks{...}
+// - this is used by parse_conditional,parse_loop and parse_function
+AST_expression* parse_block(std::string &code, int& index){
     AST_block* block = new AST_block();
     TokenData t = get_token(code, index);
 
@@ -1045,5 +1058,101 @@ AST_expression* parse_block(std::string code, int& index){
     return block;
 }
 
+// PARSE : Function
+// - this parses a function which starts with the keyword "fn"
+AST_expression* parse_function(std::string &code, int& index){
+    TokenData t = get_token(code, index);
+    if(t.token != Token::FUNCTION){
+        // Error
+        throw std::runtime_error("Function missing keyword fn");
+    }
+
+    t = get_token(code, index);
+    AST_function* function;
+    if(t.token != Token::CALL){
+        // Error
+        throw std::runtime_error("Function missing name");
+    }else{
+        function = new AST_function(t.lexeme);
+    }
+    
+    t = get_token(code, index);
+    if(t.token != Token::OPEN_PAREN){
+        // Error
+        throw std::runtime_error("Function missing open paren");
+    }
+
+    while(t.token != Token::CLOSE_PAREN){
+        t = get_token(code, index);
+        std::cout << t.token << std::endl;
+        if(t.token == Token::INT_literal){
+            function->addParameter(new AST_integer(std::stoi(t.lexeme)));
+        }else if(t.token == Token::FLOAT_literal){
+            function->addParameter(new AST_float(std::stof(t.lexeme)));
+        }else if(t.token == Token::BOOL_literal){
+            function->addParameter(new AST_boolean(t.lexeme == "TRUE" ? true : false));
+        }else if(t.token == Token::CHAR_literal){
+            function->addParameter(new AST_char(t.lexeme[0]));
+        }else if(t.token == Token::STRING_literal){
+            function->addParameter(new AST_string(t.lexeme));
+        }else if(t.token == Token::IDENTIFIER){
+            function->addParameter(new AST_variable(t.lexeme));
+            int copy_index = index;
+            TokenData td = get_token(code, copy_index);
+            if(td.token == Token::COLON){ // colon, expect data type
+                td = get_token(code, copy_index);
+
+                if(td.token == Token::INT){
+                    // Parameter is an integer
+                }else if(td.token == Token::FLOAT){
+                    // Parameter is a float
+                }else if(td.token == Token::BOOL){
+                    // Parameter is a boolean
+                }else if(td.token == Token::CHAR){
+                    // Parameter is a char
+                }else if(td.token == Token::STRING){
+                    // Parameter is a string
+                }else{
+                    // Error
+                    throw std::runtime_error("Invalid parameter type");
+                }
+                
+                index = copy_index;
+            }
+        }else if(t.token == Token::COMMA){ 
+            // do nothing
+        }else if(t.token == Token::CLOSE_PAREN) { 
+            break;
+        }else{
+            // Error
+            throw std::runtime_error("Invalid parameter");
+        }
+    }
+
+    int copy_index = index;
+    TokenData td = get_token(code, copy_index);
+    if(td.token == Token::COLON){ // expect data type
+        td = get_token(code, copy_index);
+        if(td.token == Token::INT){
+            // Return type is an integer
+        }else if(td.token == Token::FLOAT){
+            // Return type is a float
+        }else if(td.token == Token::BOOL){
+            // Return type is a boolean
+        }else if(td.token == Token::CHAR){
+            // Return type is a char
+        }else if(td.token == Token::STRING){
+            // Return type is a string
+        }else{
+            // Error
+            throw std::runtime_error("Invalid return type");
+        }
+
+        index = copy_index;
+    }
+
+    function->setBody(dynamic_cast<AST_block*>(parse_block(code, index)));
+    return function;
+}
 
 #endif
