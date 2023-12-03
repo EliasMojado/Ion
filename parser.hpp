@@ -688,6 +688,7 @@ AST_program* parse_program(std::string);
 AST_expression* parse_declaration(std::string, int&);
 AST_expression* parse_expression(std::string, int&);
 AST_expression* build_expression(std::queue<TokenData>& operand_queue);
+AST_expression* parse_block(std::string, int&);
 
 //  PARSE : Program
 //  - this parses the entire program
@@ -698,8 +699,6 @@ AST_program* parse_program(std::string code){
     while(index < code.size()){
         int copy_index = index;
         TokenData td = get_token(code, copy_index);
-        // std::cout << td.token << " {" <<td.lexeme << "}" << std::endl;
-
         if(td.token == Token::NEW_LINE || td.token == Token::SEMICOLON){
             index++;
             continue;
@@ -713,6 +712,8 @@ AST_program* parse_program(std::string code){
             //parse_conditional(code, index);
         }else if (td.token == Token::WHILE){ // Loop found
             //parse_loop(code, index);  
+        }else if (td.token == Token::OPEN_BRACE){ 
+            program->addExpression(parse_block(code, index));
         }else{
             program->addExpression(parse_expression(code, index));
         }
@@ -903,7 +904,8 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
             t.token == Token::DOUBLE_COMPARATOR
         ) {
             if(ast_stack.size() < 2){
-                // error
+                // Error
+                throw std::runtime_error("Not enough operands for operator");
             }
             AST_expression* right = ast_stack.top(); ast_stack.pop();
             AST_expression* left = ast_stack.top(); ast_stack.pop();
@@ -911,6 +913,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
             // Check if the operator is an assignment operator and if the LHS is assignable
             if (t.lexeme == "=") {
                 if (!is_assignable(left)) {
+                    // Error
                     throw std::runtime_error("Left-hand side of assignment is not assignable");
                 }
             }
@@ -919,6 +922,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
             node = new AST_binary(t.lexeme, left, right);
         }else if (t.token == Token::UNARY_OPERATOR) { 
             if (ast_stack.empty()) {
+                // Error
                 throw std::runtime_error("No operand for unary operator");
             }
 
@@ -975,6 +979,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
                         }else if(t.token == Token::COMMA){
                             // Do nothing
                         }else{
+                            // Error
                             throw std::runtime_error("Invalid parameter");
                         }
                         t = operand_queue.front();
@@ -985,7 +990,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
                     
                     break;
                 default:
-                    // Handle unknown token types
+                    // Error
                     throw std::runtime_error("Unknown token type");
             }
         }
@@ -997,5 +1002,48 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
     // The last node on the stack is the root of the AST
     return ast_stack.empty() ? nullptr : ast_stack.top();
 }
+
+AST_expression* parse_block(std::string code, int& index){
+    AST_block* block = new AST_block();
+    TokenData t = get_token(code, index);
+
+    if(t.token != Token::OPEN_BRACE){
+        // Error
+        throw std::runtime_error("Block missing open brace");
+    }
+
+    int copy_index = index;
+    TokenData td = get_token(code, copy_index);
+
+    while(td.token != Token::CLOSE_BRACE){
+        if(td.token == Token::NEW_LINE || td.token == Token::SEMICOLON){
+            index++;
+        }else if(td.token == Token::END_OF_FILE || code.size() <= index){
+            // Error
+            throw std::runtime_error("Block missing close brace");
+        }else if(td.token == Token::LET){ // Declaration found
+            block->addChild(parse_declaration(code, index));
+        }else if (td.token == Token::FUNCTION){ // Function found
+            //parse_function(code, index);
+        }else if (td.token == Token::IF){ // Conditional found
+            //parse_conditional(code, index);
+        }else if (td.token == Token::WHILE){ // Loop found
+            //parse_loop(code, index);  
+        }else if (td.token == Token::OPEN_BRACE){ 
+            block->addChild(parse_block(code, index));
+        }else{
+            block->addChild(parse_expression(code, index));
+        }
+
+        copy_index = index;
+        td = get_token(code, copy_index);
+    }
+
+    index = copy_index;
+    index++;
+
+    return block;
+}
+
 
 #endif
