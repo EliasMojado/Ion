@@ -863,6 +863,7 @@ AST_expression* parse_expression(std::string code, int& index){
                     operand_queue.push(temp);
                 }else{
                     // error
+                    throw std::runtime_error("Invalid parameter");
                 }
                 temp = get_token(code, index);
             }
