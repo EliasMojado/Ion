@@ -235,7 +235,7 @@ public:
 class AST_conditional : public AST_expression{
 private:
     struct branch{
-        AST_binary *condition;
+        AST_expression *condition;
         AST_block *body;
     };
 public:
@@ -243,18 +243,30 @@ public:
 
     AST_conditional() : AST_expression(AST_type::CONDITIONAL) {}
 
+    void addBranch(AST_expression* condition, AST_block* body){
+        branch b;
+        b.condition = condition;
+        b.body = body;
+        this->branches.push_back(b);
+    }
+
     void print(int indent) const {
         print_indent(indent);
         std::cout << "Conditional: {" << std::endl;
         for (const auto &branch : branches) {
-            print_indent(indent);
+            print_indent(indent+1);
 
             std::cout << "Condition: " << std::endl;
-            branch.condition->print(indent + 1);
+            if(branch.condition != nullptr){
+                branch.condition->print(indent + 1);
+            }else{
+                print_indent(indent + 2);
+                std::cout << "None" << std::endl;
+            }
 
-            print_indent(indent);
-            std::cout << " Body: " <<std::endl;
-            branch.body->print(indent + 1);
+            print_indent(indent+1);
+            std::cout << "Body: " <<std::endl;
+            branch.body->print(indent + 2);
         }
         print_indent(indent);
         std::cout << "}" << std::endl;
@@ -482,7 +494,7 @@ TokenData get_token(std::string code, int& index){
         int copy_index = index;
         TokenData temp = get_token(code, copy_index);
 
-        if(code[index] == '(' || temp.token == Token::OPEN_PAREN){
+        if(temp.token == Token::OPEN_PAREN && td.token == Token::IDENTIFIER){
             td.token = Token::CALL;
         }
         else if(td.lexeme == "int"){
@@ -690,14 +702,16 @@ bool is_assignable(AST_expression* expr) {
     return expr->type == AST_type::VARIABLE;
 }
 
+// END OF HELPER FUNCTIONS
 //-----------------------------------------------------------------------------------------------------------------------------
 
 AST_program* parse_program(std::string&);
 AST_expression* parse_declaration(std::string&, int&);
-AST_expression* parse_expression(std::string&, int&);
+AST_expression* parse_expression(std::string&, int&, bool);
 AST_expression* build_expression(std::queue<TokenData>& operand_queue);
 AST_expression* parse_block(std::string&, int&);
 AST_expression* parse_function(std::string&, int&);
+AST_expression* parse_conditional(std::string&, int&);
 
 //  PARSE : Program
 //  - this parses the entire program
@@ -718,13 +732,13 @@ AST_program* parse_program(std::string &code){
         }else if (td.token == Token::FUNCTION){ // Function found
             program->addExpression(parse_function(code, index));
         }else if (td.token == Token::IF){ // Conditional found
-            //parse_conditional(code, index);
+            program->addExpression(parse_conditional(code, index));
         }else if (td.token == Token::WHILE){ // Loop found
             //parse_loop(code, index);  
         }else if (td.token == Token::OPEN_BRACE){ 
             program->addExpression(parse_block(code, index));
         }else{
-            program->addExpression(parse_expression(code, index));
+            program->addExpression(parse_expression(code, index, false));
         }
     }
     return program;
@@ -748,7 +762,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
         LHS = new AST_variable(t.lexeme);
     }else{
         // Error
-        std::cout << "Error 2" << std::endl;
+        throw std::runtime_error("Expected identifier");
     }
 
     t = get_token(code, index);
@@ -767,7 +781,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
             // LHS is a string
         }else{
             // Error
-            std::cout << "Error 3";
+            throw std::runtime_error("Expected data type");
         }
         
         t = get_token(code, index);
@@ -780,7 +794,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
         return LHS;
     }else if(t.token == Token::SINGLE_OPERATOR && t.lexeme == "="){
         // RHS is a binary expression
-        RHS = parse_expression(code, index);
+        RHS = parse_expression(code, index, false);
         AST_expression* binOpDeclartion = new AST_binary("=", LHS, RHS);
         return binOpDeclartion;
     }else{
@@ -795,7 +809,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
 //  - this parses a general expression. This could be:
 //  - Binary operation, function call, variables, literals
 //  - This is implemented using the Shunting Yard algorithm
-AST_expression* parse_expression(std::string &code, int& index){
+AST_expression* parse_expression(std::string &code, int& index, bool condition = false){
     TokenData t = get_token(code, index);
     TokenData lastToken;
     lastToken.lexeme = "";
@@ -804,10 +818,17 @@ AST_expression* parse_expression(std::string &code, int& index){
     std::queue <TokenData> operand_queue;
     AST_expression* expr = nullptr;
 
-    while(t.token != Token::NEW_LINE && t.token != Token::SEMICOLON){
+    while(t.token != Token::NEW_LINE && t.token != Token::SEMICOLON){        
         if(t.token == Token::OPEN_PAREN){
             operator_stack.push(t);
         }else if(t.token == Token::CLOSE_PAREN){
+            if(condition){
+                if(expr == nullptr){
+                    // Error
+                    throw std::runtime_error("Invalid expression");
+                }
+                break;
+            }
             while(operator_stack.top().token != Token::OPEN_PAREN){
                 operand_queue.push(operator_stack.top());
                 operator_stack.pop();
@@ -1012,7 +1033,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
     return ast_stack.empty() ? nullptr : ast_stack.top();
 }
 
-// PARSE : Block
+// PARSE: Block
 // - this parses a block of code
 // - similar to parse_program, but this is used for parsing blocks{...}
 // - this is used by parse_conditional,parse_loop and parse_function
@@ -1043,7 +1064,7 @@ AST_expression* parse_block(std::string &code, int& index){
         }else if (td.token == Token::OPEN_BRACE){ 
             block->addChild(parse_block(code, index));
         }else{
-            block->addChild(parse_expression(code, index));
+            block->addChild(parse_expression(code, index, false));
         }
 
         copy_index = index;
@@ -1051,14 +1072,14 @@ AST_expression* parse_block(std::string &code, int& index){
     }
 
     index = copy_index;
-    index++;
+    // index++;
 
     return block;
 }
 
-// PARSE : Function
-// - this parses a function which starts with the keyword "fn"
-// - this is used by parse_program ONLY(which means that functions cannot be nested)
+//  PARSE: Function
+//  - this parses a function which starts with the keyword "fn"
+//  - this is used by parse_program ONLY (which means that functions cannot be nested)
 AST_expression* parse_function(std::string &code, int& index){
     TokenData t = get_token(code, index);
     if(t.token != Token::FUNCTION){
@@ -1115,7 +1136,6 @@ AST_expression* parse_function(std::string &code, int& index){
                     // Error
                     throw std::runtime_error("Invalid parameter type");
                 }
-                
                 index = copy_index;
             }
         }else if(t.token == Token::COMMA){ 
@@ -1152,6 +1172,48 @@ AST_expression* parse_function(std::string &code, int& index){
 
     function->setBody(dynamic_cast<AST_block*>(parse_block(code, index)));
     return function;
+}
+
+// PARSE: Conditional
+// - this parses a conditional which starts with the keyword "if"
+AST_expression* parse_conditional(std::string &code, int& index){
+    TokenData t;
+    AST_conditional* conditional = new AST_conditional();
+    bool elseFound = false;
+
+    while(t.token != Token::END_OF_FILE){
+        t = get_token(code, index);
+        if(t.token == Token::IF){
+            t = get_token(code, index);
+            if(t.token != Token::OPEN_PAREN){
+                // Error
+                throw std::runtime_error("Conditional missing open paren");
+            }
+            AST_expression* condition = parse_expression(code, index, true);
+            AST_block* body = dynamic_cast<AST_block*>(parse_block(code, index));
+            conditional->addBranch(condition, body);
+
+            if(elseFound){
+                elseFound = false;
+            }
+        }else if(elseFound){
+            // last else
+            AST_block* body = dynamic_cast<AST_block*>(parse_block(code, index));
+            conditional->addBranch(nullptr, body);
+            break;
+        }
+        
+        int copy_index = index;
+        t = get_token(code, copy_index);
+        if(t.token != Token::ELSE){
+            break;
+        }else{
+            elseFound = true;
+            index = copy_index;
+        }
+    }
+    
+    return conditional;
 }
 
 #endif
