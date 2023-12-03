@@ -491,13 +491,7 @@ TokenData get_token(std::string code, int& index){
             index++;
         }
 
-        int copy_index = index;
-        TokenData temp = get_token(code, copy_index);
-
-        if(temp.token == Token::OPEN_PAREN && td.token == Token::IDENTIFIER){
-            td.token = Token::CALL;
-        }
-        else if(td.lexeme == "int"){
+        if(td.lexeme == "int"){
             td.token = Token::INT;
         }
         else if(td.lexeme == "float"){
@@ -538,6 +532,13 @@ TokenData get_token(std::string code, int& index){
         }
         else{
             td.token = Token::IDENTIFIER;
+        }
+
+        int copy_index = index;
+        TokenData temp = get_token(code, copy_index);
+
+        if(temp.token == Token::OPEN_PAREN && td.token == Token::IDENTIFIER){
+            td.token = Token::CALL;
         }
 
         return td;
@@ -753,7 +754,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
 
     if(t.token != Token::LET){
         // Error
-        std::cout << "Error 1" << std::endl;
+        throw std::runtime_error("Expected keyword LET in a declaration");
         return nullptr;
     }
     
@@ -799,8 +800,8 @@ AST_expression* parse_declaration(std::string &code, int& index){
         AST_expression* binOpDeclartion = new AST_binary("=", LHS, RHS);
         return binOpDeclartion;
     }else{
-        //error
-        std::cout << "Error 4" << std::endl;
+        // Error
+        throw std::runtime_error("Unexpected Token");
     }
 
     return nullptr;   
@@ -890,7 +891,7 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
                 ){
                     operand_queue.push(temp);
                 }else{
-                    // error
+                    // Error
                     throw std::runtime_error("Invalid parameter");
                 }
                 temp = get_token(code, index);
@@ -1062,7 +1063,7 @@ AST_expression* parse_block(std::string &code, int& index){
         }else if (td.token == Token::IF){ // Conditional found
             block->addChild(parse_conditional(code, index));
         }else if (td.token == Token::WHILE){ // Loop found
-            //parse_loop(code, index);  
+            block->addChild(parse_loop(code, index));  
         }else if (td.token == Token::OPEN_BRACE){ 
             block->addChild(parse_block(code, index));
         }else{
@@ -1090,6 +1091,7 @@ AST_expression* parse_function(std::string &code, int& index){
     }
 
     t = get_token(code, index);
+
     AST_function* function;
     if(t.token != Token::CALL){
         // Error
@@ -1106,7 +1108,6 @@ AST_expression* parse_function(std::string &code, int& index){
 
     while(t.token != Token::CLOSE_PAREN){
         t = get_token(code, index);
-        std::cout << t.token << std::endl;
         if(t.token == Token::INT_literal){
             function->addParameter(new AST_integer(std::stoi(t.lexeme)));
         }else if(t.token == Token::FLOAT_literal){
