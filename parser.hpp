@@ -322,8 +322,8 @@ public:
 class AST_function_call : public AST_expression{
 public:
     std::string function_name;
-    std::list <AST_variable*> parameters;
-    AST_function_call(std::string name, std::list <AST_variable*> parameters) : AST_expression(AST_type::FUNCTION_CALL){
+    std::list <AST_expression*> parameters;
+    AST_function_call(std::string name, std::list <AST_expression*> parameters) : AST_expression(AST_type::FUNCTION_CALL){
         this->function_name = name;
         this->parameters = parameters;
     }
@@ -833,7 +833,7 @@ AST_expression* parse_expression(std::string code, int& index){
                 operator_stack.pop();
             }
             operator_stack.push(t);
-        }else if (t.token == Token::SINGLE_COMPARATOR || t.token == Token::DOUBLE_OPERATOR){
+        }else if (t.token == Token::SINGLE_COMPARATOR || t.token == Token::DOUBLE_COMPARATOR || t.token == Token::DOUBLE_OPERATOR){
             while(!operator_stack.empty() 
                 && operator_stack.top().token != Token::OPEN_PAREN &&
                 precedence(operator_stack.top()) > precedence(t))
@@ -925,7 +925,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
             node = new AST_unary(t.lexeme, operand);
         }else {
             // Handling for operand tokens
-            std::list<AST_variable*> parameters;
+            std::list<AST_expression*> parameters;
             TokenData temp;
 
             switch (t.token) {
@@ -959,14 +959,18 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
                     t = operand_queue.front();
                     operand_queue.pop();
                     while(t.token != Token::CLOSE_PAREN){
-                        if(t.token == Token::IDENTIFIER
-                            || t.token == Token::INT_literal
-                            || t.token == Token::FLOAT_literal
-                            || t.token == Token::BOOL_literal
-                            || t.token == Token::CHAR_literal
-                            || t.token == Token::STRING_literal
-                        ){
+                        if(t.token == Token::IDENTIFIER){
                             parameters.push_back(new AST_variable(t.lexeme));
+                        }else if(t.token == Token::INT_literal){
+                            parameters.push_back(new AST_integer(std::stoi(t.lexeme)));
+                        }else if(t.token == Token::FLOAT_literal){
+                            parameters.push_back(new AST_float(std::stof(t.lexeme)));
+                        }else if(t.token == Token::BOOL_literal) {
+                            parameters.push_back(new AST_boolean(t.lexeme == "TRUE" ? true : false));
+                        }else if(t.token == Token::CHAR_literal){
+                            parameters.push_back(new AST_char(t.lexeme[0]));
+                        }else if(t.token == Token::STRING_literal){
+                            parameters.push_back(new AST_string(t.lexeme));
                         }else if(t.token == Token::COMMA){
                             // Do nothing
                         }else{
@@ -994,4 +998,3 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
 }
 
 #endif
-
