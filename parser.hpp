@@ -486,7 +486,7 @@ TokenData get_token(std::string code, int& index){
 
     // alphabet found
     if(isalpha(code[index])){
-        while(isalnum(code[index])){
+        while(isalnum(code[index]) || code[index] == '_'){
             td.lexeme += code[index];
             index++;
         }
@@ -824,12 +824,13 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
         if(t.token == Token::OPEN_PAREN){
             operator_stack.push(t);
         }else if(t.token == Token::CLOSE_PAREN){
-            if(condition){
-                break;
-            }
-            while(operator_stack.top().token != Token::OPEN_PAREN){
+            while(!operator_stack.empty() && operator_stack.top().token != Token::OPEN_PAREN){
                 operand_queue.push(operator_stack.top());
                 operator_stack.pop();
+            }
+
+            if(operator_stack.empty() && condition){
+                break;
             }
             operator_stack.pop();
         }else if(
