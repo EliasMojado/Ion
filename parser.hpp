@@ -23,6 +23,7 @@ enum class AST_type{
     CONDITIONAL,
     LOOP,
     FUNCTION,
+    RETURN,
     FUNCTION_CALL,
     BLOCK,
 };
@@ -359,6 +360,24 @@ public:
     }
     
     ~AST_function_call(){}
+};
+
+// DERIVED CLASS : Return
+// - Stores an expression to be returned
+class AST_return : public AST_expression{
+public:
+    AST_expression *expr;
+    AST_return(AST_expression* expr) : AST_expression(AST_type::RETURN){
+        this->expr = expr;
+    }
+
+    void print(int indent) const {
+        print_indent(indent);
+        std::cout << "Return: " << std::endl;
+        expr->print(indent + 1);
+    }
+
+    ~AST_return(){}
 };
 
 
@@ -714,6 +733,7 @@ AST_expression* parse_block(std::string&, int&);
 AST_expression* parse_function(std::string&, int&);
 AST_expression* parse_conditional(std::string&, int&);
 AST_expression* parse_loop(std::string&, int&);
+AST_expression* parse_return(std::string&, int&);
 
 //  PARSE : Program
 //  - this parses the entire program
@@ -739,6 +759,8 @@ AST_program* parse_program(std::string &code){
             program->addExpression(parse_loop(code, index));  
         }else if (td.token == Token::OPEN_BRACE){ 
             program->addExpression(parse_block(code, index));  // block found
+        }else if (td.token == Token::RETURN) { 
+            program->addExpression(parse_return(code, index)); // return found
         }else{
             program->addExpression(parse_expression(code, index, false));
         }
@@ -1065,8 +1087,10 @@ AST_expression* parse_block(std::string &code, int& index){
             block->addChild(parse_conditional(code, index));
         }else if (td.token == Token::WHILE){ // Loop found
             block->addChild(parse_loop(code, index));  
-        }else if (td.token == Token::OPEN_BRACE){ 
+        }else if (td.token == Token::OPEN_BRACE){  // Scope found
             block->addChild(parse_block(code, index));
+        }else if (td.token == Token::RETURN){  // Return found;
+            block->addChild(parse_return(code, index));
         }else{
             block->addChild(parse_expression(code, index, false));
         }
@@ -1241,6 +1265,21 @@ AST_expression* parse_loop(std::string& code, int& index){
     loop->body = dynamic_cast<AST_block*>(parse_block(code, index));
 
     return loop;
+}
+
+//  PARSE: Return
+//  - this parses a return statement
+AST_expression* parse_return(std::string& code, int& index){
+    TokenData t;
+    AST_expression* expr;
+    t = get_token(code, index);
+    if(t.token != Token::RETURN){
+        // Error
+        throw std::runtime_error("Expected keyword RETURN");
+    }
+
+    expr = parse_expression(code, index, false);
+    return new AST_return(expr);
 }
 
 #endif
