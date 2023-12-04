@@ -503,6 +503,13 @@ TokenData get_token(std::string code, int& index){
         index++;
     }
 
+    if(code[index] == '#'){
+        while(code[index] != '\n' && code[index] != ';'){
+            index++;
+        }
+        index--;
+    }
+
     // alphabet found
     if(isalpha(code[index])){
         while(isalnum(code[index]) || code[index] == '_'){
