@@ -6,7 +6,9 @@
 #include <list>
 #include <stack>
 #include <queue>
+
 #include "ast.hpp"
+#include "table.hpp"
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // SECTION : LEXICAL ANALYSIS
@@ -388,6 +390,9 @@ AST_expression* parse_declaration(std::string &code, int& index){
     AST_expression *LHS, *RHS;
     TokenData t = get_token(code, index);
 
+    std::string name;
+    metadata data;
+
     if(t.token != Token::LET){
         // Error
         throw std::runtime_error("Expected keyword LET in a declaration");
@@ -398,6 +403,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
     t = get_token(code, index);
     if(t.token == Token::IDENTIFIER){
         LHS = new AST_variable(t.lexeme);
+        name = t.lexeme;
     }else{
         // Error
         throw std::runtime_error("Expected identifier");
@@ -409,14 +415,24 @@ AST_expression* parse_declaration(std::string &code, int& index){
 
         if(t.token == Token::INT){
             // LHS is an integer
+            data.type = data_type::INTEGER;
+            data.size = 4;
         }else if(t.token == Token::FLOAT){
             // LHS is a float
+            data.type = data_type::FLOAT;
+            data.size = 4;
         }else if(t.token == Token::BOOL){
             // LHS is a boolean
+            data.type = data_type::BOOLEAN;
+            data.size = 1;
         }else if(t.token == Token::CHAR){
             // LHS is a char
+            data.type = data_type::CHAR;
+            data.size = 1;
         }else if(t.token == Token::STRING){
             // LHS is a string
+            data.type = data_type::STRING;
+            data.size = 8;
         }else{
             // Error
             throw std::runtime_error("Expected data type");
@@ -425,8 +441,12 @@ AST_expression* parse_declaration(std::string &code, int& index){
         t = get_token(code, index);
     }else{
         // No data type
+        data.type = data_type::UNKNOWN;
     }
     
+    // Add the variable to the symbol table
+    SYMBOL_TABLE->addSymbol(name, data);
+
     if(t.token == Token::SEMICOLON || t.token == Token::NEW_LINE){
         // Variable 
         return LHS;
@@ -439,6 +459,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
         // Error
         throw std::runtime_error("Unexpected Token");
     }
+
 
     return nullptr;   
 }
@@ -685,6 +706,7 @@ AST_expression* parse_block(std::string &code, int& index){
         // Error
         throw std::runtime_error("Block missing open brace");
     }
+    SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
 
     int copy_index = index;
     TokenData td = get_token(code, copy_index);
@@ -712,6 +734,8 @@ AST_expression* parse_block(std::string &code, int& index){
         copy_index = index;
         td = get_token(code, copy_index);
     }
+
+    SYMBOL_TABLE = SYMBOL_TABLE->scopeOut();
 
     index = copy_index;
     // index++;
