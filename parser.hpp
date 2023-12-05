@@ -720,6 +720,7 @@ int precedence(const TokenData& t){
     if(t.token == Token::UNARY_OPERATOR) return 4;
     if(t.lexeme == "*" || t.lexeme == "/" || t.lexeme == "%") return 3;
     if(t.lexeme == "+" || t.lexeme == "-") return 2;
+    if(t.lexeme == "=") return 0;
 
     return 1;
 }
