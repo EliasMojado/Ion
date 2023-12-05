@@ -886,7 +886,7 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
 
             while(!operator_stack.empty() 
                 && operator_stack.top().token != Token::OPEN_PAREN 
-                && precedence(operator_stack.top()) > precedence(t)
+                && precedence(operator_stack.top()) >= precedence(t)
             ){
                 operand_queue.push(operator_stack.top());
                 operator_stack.pop();
@@ -895,7 +895,7 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
         }else if (t.token == Token::SINGLE_COMPARATOR || t.token == Token::DOUBLE_COMPARATOR || t.token == Token::DOUBLE_OPERATOR){
             while(!operator_stack.empty() 
                 && operator_stack.top().token != Token::OPEN_PAREN &&
-                precedence(operator_stack.top()) > precedence(t))
+                precedence(operator_stack.top()) >= precedence(t))
             {
                 operand_queue.push(operator_stack.top());
                 operator_stack.pop();
