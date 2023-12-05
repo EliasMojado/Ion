@@ -23,26 +23,19 @@ struct metadata{
 // This is a tree structure that stores the scope of each variable  (e.g. global, function, block)
 class Table{
 public:
-    int start, end;
+    int scope_size;
     std::unordered_map <std::string, metadata> symbol_table;
     Table* parent;
     std::list <Table*> children;
 
-    Table(Table* parent = nullptr) : parent(parent), start(0){}
-
-    // Method to add start
-    void Start(int startValue) {
-        start = startValue;
-    }
-
-    // Method to add end
-    void End(int endValue) {
-        end = endValue;
+    Table(Table* parent = nullptr, int offset = 0){
+        this->parent = parent;
+        scope_size = offset;
     }
 
     // Method to add a new scope
     Table* scopeIn() {
-        Table* newScope = new Table(this);
+        Table* newScope = new Table(this, scope_size);
         children.push_back(newScope);
         return newScope;
     }
@@ -50,6 +43,7 @@ public:
     // Method to move to the outer scope
     Table* scopeOut() {
         if (parent != nullptr) {
+            parent->scope_size = this->scope_size;
             return parent;
         } else {
             // Already at the global scope or no parent scope exists.
@@ -68,8 +62,10 @@ public:
     }
 
     // Method to add a variable
-    void addSymbol(const std::string& name, const metadata& data) {
+    void addSymbol(const std::string& name, metadata& data) {
         if (!isVariableExists(name)) {
+            data.address = scope_size;
+            scope_size += data.size;
             symbol_table[name] = data;
         } else {
             throw std::runtime_error("Variable already exists: " + name);
@@ -103,7 +99,7 @@ public:
 };
 
 // GLOBAL SYMBOL TABLE
-Table* SYMBOL_TABLE = new Table(nullptr);
+Table* SYMBOL_TABLE = new Table(nullptr, 0);
 
 
 #endif
