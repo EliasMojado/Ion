@@ -43,7 +43,6 @@ public:
     // Method to move to the outer scope
     Table* scopeOut() {
         if (parent != nullptr) {
-            parent->scope_size = this->scope_size;
             return parent;
         } else {
             // Already at the global scope or no parent scope exists.

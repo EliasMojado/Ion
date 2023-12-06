@@ -95,17 +95,17 @@ TokenData get_token(std::string code, int& index){
         td.token = Token::END_OF_FILE;
         return td;
     }
+
+    // skip leading whitespace
+    while(code[index] == ' ' || code[index] == '\t'){
+        index++;
+    }
     
     // check for new line
     if(code[index] == '\n'){
         td.token = Token::NEW_LINE;
         index++;
         return td;
-    }
-
-    // skip leading whitespace
-    while(code[index] == ' ' || code[index] == '\t'){
-        index++;
     }
 
     if(code[index] == '#'){

@@ -416,8 +416,8 @@ AST_expression* parse_block(std::string &code, int& index){
     TokenData td = get_token(code, copy_index);
 
     while(td.token != Token::CLOSE_BRACE){
-        if(td.token == Token::NEW_LINE || td.token == Token::SEMICOLON){
-            index++;
+        if(td.token == Token::NEW_LINE || td.token == Token::SEMICOLON || code[index] == ' ' || code[index] == '\t'){
+            index += 1;
         }else if(td.token == Token::END_OF_FILE || code.size() <= index){
             // Error
             throw std::runtime_error("Block missing close brace");
