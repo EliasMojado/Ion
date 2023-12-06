@@ -42,7 +42,7 @@ AST_program* parse_program(std::string&);
 AST_expression* parse_declaration(std::string&, int&);
 AST_expression* parse_expression(std::string&, int&, bool);
 AST_expression* build_expression(std::queue<TokenData>& operand_queue);
-AST_expression* parse_block(std::string&, int&);
+AST_expression* parse_block(std::string&, int&, bool);
 AST_expression* parse_function(std::string&, int&);
 AST_expression* parse_conditional(std::string&, int&);
 AST_expression* parse_loop(std::string&, int&);
@@ -71,7 +71,7 @@ AST_program* parse_program(std::string &code){
         }else if (td.token == Token::WHILE){ // Loop found
             program->addExpression(parse_loop(code, index));  
         }else if (td.token == Token::OPEN_BRACE){ 
-            program->addExpression(parse_block(code, index));  // block found
+            program->addExpression(parse_block(code, index, false));  // block found
         }else if (td.token == Token::RETURN) { 
             program->addExpression(parse_return(code, index)); // return found
         }else{
@@ -402,7 +402,7 @@ AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
 // - this parses a block of code
 // - similar to parse_program, but this is used for parsing blocks{...}
 // - this is used by parse_conditional,parse_loop and parse_function
-AST_expression* parse_block(std::string &code, int& index){
+AST_expression* parse_block(std::string &code, int& index, bool is_function = false){
     AST_block* block = new AST_block();
     TokenData t = get_token(code, index);
 
@@ -410,7 +410,10 @@ AST_expression* parse_block(std::string &code, int& index){
         // Error
         throw std::runtime_error("Block missing open brace");
     }
-    SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
+
+    if(!is_function){
+        SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
+    }
 
     int copy_index = index;
     TokenData td = get_token(code, copy_index);
@@ -428,7 +431,7 @@ AST_expression* parse_block(std::string &code, int& index){
         }else if (td.token == Token::WHILE){ // Loop found
             block->addChild(parse_loop(code, index));  
         }else if (td.token == Token::OPEN_BRACE){  // Scope found
-            block->addChild(parse_block(code, index));
+            block->addChild(parse_block(code, index, false));
         }else if (td.token == Token::RETURN){  // Return found;
             block->addChild(parse_return(code, index));
         }else{
@@ -439,7 +442,9 @@ AST_expression* parse_block(std::string &code, int& index){
         td = get_token(code, copy_index);
     }
 
-    SYMBOL_TABLE = SYMBOL_TABLE->scopeOut();
+    if(!is_function){
+        SYMBOL_TABLE = SYMBOL_TABLE->scopeOut();
+    }
 
     index = copy_index;
     // index++;
@@ -560,7 +565,7 @@ AST_expression* parse_function(std::string &code, int& index){
         index = copy_index;
     }
 
-    function->setBody(dynamic_cast<AST_block*>(parse_block(code, index)));
+    function->setBody(dynamic_cast<AST_block*>(parse_block(code, index, true)));
     SYMBOL_TABLE = SYMBOL_TABLE->scopeOut();
     return function;
 }
@@ -581,7 +586,7 @@ AST_expression* parse_conditional(std::string &code, int& index){
                 throw std::runtime_error("Conditional missing open paren");
             }
             AST_expression* condition = parse_expression(code, index, true);
-            AST_block* body = dynamic_cast<AST_block*>(parse_block(code, index));
+            AST_block* body = dynamic_cast<AST_block*>(parse_block(code, index, false));
             conditional->addBranch(condition, body);
 
             if(elseFound){
@@ -589,7 +594,7 @@ AST_expression* parse_conditional(std::string &code, int& index){
             }
         }else if(elseFound){
             // last else
-            AST_block* body = dynamic_cast<AST_block*>(parse_block(code, index));
+            AST_block* body = dynamic_cast<AST_block*>(parse_block(code, index, false));
             conditional->addBranch(nullptr, body);
             break;
         }
@@ -625,7 +630,7 @@ AST_expression* parse_loop(std::string& code, int& index){
     }
 
     loop->condition  = parse_expression(code, index, true);
-    loop->body = dynamic_cast<AST_block*>(parse_block(code, index));
+    loop->body = dynamic_cast<AST_block*>(parse_block(code, index, false));
 
     return loop;
 }

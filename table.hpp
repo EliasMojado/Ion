@@ -97,6 +97,7 @@ public:
         }
         for (Table* child : children) {
             child->printSymbolTable(indent + 4);  // Increase indent for nested scopes
+            std::cout << std::endl;
         }
     }
     
