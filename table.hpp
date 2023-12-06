@@ -28,14 +28,14 @@ public:
     Table* parent;
     std::list <Table*> children;
 
-    Table(Table* parent = nullptr, int offset = 0){
+    Table(Table* parent = nullptr){
+        this->scope_size = 0;
         this->parent = parent;
-        scope_size = offset;
     }
 
     // Method to add a new scope
     Table* scopeIn() {
-        Table* newScope = new Table(this, scope_size);
+        Table* newScope = new Table(this);
         children.push_back(newScope);
         return newScope;
     }
@@ -64,16 +64,21 @@ public:
     // Method to add a variable
     void addSymbol(const std::string& name, metadata& data) {
         if (!isVariableExists(name)) {
-            data.address = scope_size;
-            scope_size += data.size;
-            symbol_table[name] = data;
+            if(data.type == data_type::UNKNOWN){
+                data.address = -1;
+                symbol_table[name] = data;
+            }else{
+                data.address = scope_size;
+                scope_size += data.size;
+                symbol_table[name] = data;
+            }
         } else {
             throw std::runtime_error("Variable already exists: " + name);
         }
     }
 
     // Method to get a variable
-    metadata getVariable(const std::string& name) {
+    metadata& getVariable(const std::string& name) {
         for (Table* current = this; current != nullptr; current = current->parent) {
             auto it = current->symbol_table.find(name);
             if (it != current->symbol_table.end()) {
@@ -99,7 +104,7 @@ public:
 };
 
 // GLOBAL SYMBOL TABLE
-Table* SYMBOL_TABLE = new Table(nullptr, 0);
+Table* SYMBOL_TABLE = new Table(nullptr);
 
 
 #endif

@@ -57,7 +57,7 @@ AST_program* parse_program(std::string &code){
     while(index < code.size()){
         int copy_index = index;
         TokenData td = get_token(code, copy_index);
-        if(td.token == Token::NEW_LINE || td.token == Token::SEMICOLON){
+        if(td.token == Token::NEW_LINE || td.token == Token::SEMICOLON || code[index] == ' ' || code[index] == '\t'){
             index++;
             continue;
         }
@@ -139,6 +139,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
     }else{
         // No data type
         data.type = data_type::UNKNOWN;
+        data.size = 0;
     }
     
     // Add the variable to the symbol table
@@ -262,6 +263,12 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
         operand_queue.push(operator_stack.top());
         operator_stack.pop();
     }
+
+    //debug
+    // while(!operand_queue.empty()){
+    //     std::cout << operand_queue.front().lexeme << " " << operand_queue.front().token << std::endl;
+    //     operand_queue.pop();
+    // }
 
     expr = build_expression(operand_queue);
 
@@ -466,6 +473,8 @@ AST_expression* parse_function(std::string &code, int& index){
         throw std::runtime_error("Function missing open paren");
     }
 
+    SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
+
     while(t.token != Token::CLOSE_PAREN){
         t = get_token(code, index);
         if(t.token == Token::INT_literal){
@@ -480,6 +489,12 @@ AST_expression* parse_function(std::string &code, int& index){
             function->addParameter(new AST_string(t.lexeme));
         }else if(t.token == Token::IDENTIFIER){
             function->addParameter(new AST_variable(t.lexeme));
+
+            // Add the parameter to the symbol table
+            metadata data;
+            data.type = data_type::UNKNOWN;
+            std::string name = t.lexeme;
+
             int copy_index = index;
             TokenData td = get_token(code, copy_index);
             if(td.token == Token::COLON){ // colon, expect data type
@@ -487,20 +502,32 @@ AST_expression* parse_function(std::string &code, int& index){
 
                 if(td.token == Token::INT){
                     // Parameter is an integer
+                    data.type = data_type::INTEGER;
+                    data.size = 4;
                 }else if(td.token == Token::FLOAT){
                     // Parameter is a float
+                    data.type = data_type::FLOAT;
+                    data.size = 4;
                 }else if(td.token == Token::BOOL){
                     // Parameter is a boolean
+                    data.type = data_type::BOOLEAN;
+                    data.size = 1;
                 }else if(td.token == Token::CHAR){
                     // Parameter is a char
+                    data.type = data_type::CHAR;
+                    data.size = 1;
                 }else if(td.token == Token::STRING){
                     // Parameter is a string
+                    data.type = data_type::STRING;
+                    data.size = 8;
                 }else{
                     // Error
                     throw std::runtime_error("Invalid parameter type");
                 }
                 index = copy_index;
             }
+
+            SYMBOL_TABLE->addSymbol(name, data);
         }else if(t.token == Token::COMMA){ 
             // do nothing
         }else if(t.token == Token::CLOSE_PAREN) { 
@@ -534,6 +561,7 @@ AST_expression* parse_function(std::string &code, int& index){
     }
 
     function->setBody(dynamic_cast<AST_block*>(parse_block(code, index)));
+    SYMBOL_TABLE = SYMBOL_TABLE->scopeOut();
     return function;
 }
 
