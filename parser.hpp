@@ -283,7 +283,7 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
 // BUILD EXPRESSION
 // - this builds the expression from the queue of tokens
 // - this is used by the Shunting Yard algorithm
-AST_expression* build_expression(std::queue<TokenData>& operand_queue) {
+AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
     std::stack<AST_expression*> ast_stack;
 
     while (!operand_queue.empty()) {
@@ -498,6 +498,7 @@ AST_expression* parse_function(std::string &code, int& index){
             // Add the parameter to the symbol table
             metadata data;
             data.type = data_type::UNKNOWN;
+            data.size = 0;
             std::string name = t.lexeme;
 
             int copy_index = index;

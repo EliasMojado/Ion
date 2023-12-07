@@ -7,6 +7,7 @@
 #include "ast.hpp"
 #include "parser.hpp"
 #include "table.hpp"
+#include "codegen.hpp"
 
 /*
     This file will contain the main logic of the compiler. 
@@ -19,6 +20,7 @@ void compile(char *programName,std::string code){
     program->print();
     std::cout << std::endl;
     SYMBOL_TABLE->printSymbolTable();
+    GEN_program(program, programName);
 }
 
 
