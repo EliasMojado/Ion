@@ -43,6 +43,7 @@ public:
     AST_expression(AST_type type) : type(type) {}
     virtual ~AST_expression() = default;
     virtual void print (int) const = 0;
+    virtual void generate_code() = 0;
 };
 
 //  DERIVED CLASS : Integer
@@ -59,6 +60,8 @@ public:
         std::cout << "Integer: " << value;
         std::cout << std::endl;
     }
+
+    void generate_code();
 
     ~AST_integer(){}
 };
@@ -78,6 +81,8 @@ public:
         std::cout << std::endl;
     }
 
+    void generate_code();
+
     ~AST_boolean(){}
 };
 
@@ -95,6 +100,8 @@ public:
         std::cout << "Float: " << value;
         std::cout << std::endl;
     }
+
+    void generate_code();
 
     ~AST_float(){}
 };
@@ -114,6 +121,8 @@ public:
         std::cout << std::endl;
     }
 
+    void generate_code();
+
     ~AST_char(){}
 };
 
@@ -132,6 +141,8 @@ public:
         std::cout << std::endl;
     }
 
+    void generate_code();
+
     ~AST_string(){}
 };
 
@@ -149,6 +160,8 @@ public:
         std::cout << "Variable: " << name;
         std::cout << std::endl;
     }
+
+    void generate_code();
 
     ~AST_variable(){}
 };
@@ -174,6 +187,8 @@ public:
         std::cout << op << std::endl;
         expr->print(indent + 1);
     }
+    
+    void generate_code();
 
     ~AST_unary(){}
 };
@@ -202,6 +217,8 @@ public:
         RHS->print(indent + 1);
     }
 
+    void generate_code();
+
     ~AST_binary(){}
 };
 
@@ -227,6 +244,7 @@ public:
         std::cout << "}" << std::endl;
     }
 
+    void generate_code();
 
     ~AST_block(){};
 };
@@ -272,6 +290,8 @@ public:
         print_indent(indent);
         std::cout << "}" << std::endl;
     }
+    
+    void generate_code();
 
     ~AST_conditional(){}
 };
@@ -297,6 +317,8 @@ public:
         print_indent(indent);
         std::cout << "}" << std::endl;
     }
+
+    void generate_code();
 
     ~AST_loop(){}
 };
@@ -334,6 +356,7 @@ public:
         std::cout << "}" << std::endl;
     }
 
+    void generate_code();
 
     ~AST_function(){}
 };
@@ -359,6 +382,8 @@ public:
         std::cout << ")" << std::endl;
     }
     
+    void generate_code();
+    
     ~AST_function_call(){}
 };
 
@@ -376,6 +401,8 @@ public:
         std::cout << "Return: " << std::endl;
         expr->print(indent + 1);
     }
+
+    void generate_code();
 
     ~AST_return(){}
 };

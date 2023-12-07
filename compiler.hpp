@@ -20,7 +20,7 @@ void compile(char *programName,std::string code){
     program->print();
     std::cout << std::endl;
     SYMBOL_TABLE->printSymbolTable();
-    GEN_program(program, programName);
+    
 }
 
 
