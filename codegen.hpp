@@ -105,7 +105,20 @@ void AST_binary::generate_code(){
 }
 
 void AST_block::generate_code(){
-    
+    SYMBOL_TABLE = SYMBOL_TABLE->traverseIN();
+
+    // ALLOCATE STACK SPACE FOR BLOCK
+    int alignedScopeSize = (SYMBOL_TABLE->scope_size + 15) & ~15;
+    asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for block\n";
+
+    for(auto child: this->children){
+        child->generate_code();
+    }
+
+    // DEALLOCATE STACK SPACE FOR BLOCK
+    asmFile << "    add rsp, " << alignedScopeSize  << "  ; Deallocate stack space for block\n";
+
+    SYMBOL_TABLE = SYMBOL_TABLE->traverseOUT();
 }
 
 void AST_conditional::generate_code(){

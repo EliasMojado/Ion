@@ -3,3 +3,6 @@ test.asm
 test.exe
 ion.exe
 test.ion
+*.asm
+*.exe
+*.ion

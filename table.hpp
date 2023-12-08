@@ -28,9 +28,13 @@ public:
     Table* parent;
     std::list <Table*> children;
 
+    // Iterator to keep track of the current child
+    std::list<Table*>::iterator currentChild;
+
     Table(Table* parent = nullptr){
         this->scope_size = 0;
         this->parent = parent;
+        this->currentChild = children.end();
     }
 
     // Method to add a new scope
@@ -47,6 +51,35 @@ public:
         } else {
             // Already at the global scope or no parent scope exists.
             throw std::runtime_error("No outer scope to move to.");
+        }
+    }
+
+    // Method to traverse in
+    Table* traverseIN(){
+       if (currentChild == children.end()) {
+            if (!children.empty()) {
+                currentChild = children.begin();  // Start with the first child
+            } else {
+                throw std::runtime_error("No child scope to traverse into.");
+            }
+        } else {
+            // Move to the next child
+            ++currentChild;
+            if (currentChild == children.end()) {
+                throw std::runtime_error("No more child scopes to traverse into.");
+            }
+        }
+        return *currentChild;
+    }
+
+    // Method to traverse out
+    Table* traverseOUT(){
+        if (parent != nullptr) {
+            // Reset the current child iterator
+            currentChild = children.end();
+            return parent;
+        } else {
+            throw std::runtime_error("No parent scope to move back to.");
         }
     }
 
@@ -91,10 +124,14 @@ public:
     void printSymbolTable(int indent = 0) const {
         if(indent == 0) std::cout << "Symbol Table:" << std::endl;
         std::string indentStr(indent, ' ');  // Create an indentation string
+
+        std::cout << indentStr << "Scope Size: " << scope_size << std::endl;
+
         for (const auto& pair : symbol_table) {
             std::cout << indentStr << pair.first << ": Type=" << static_cast<int>(pair.second.type) 
                     << ", Size=" << pair.second.size << ", Address=" << pair.second.address << std::endl;
         }
+
         for (Table* child : children) {
             child->printSymbolTable(indent + 4);  // Increase indent for nested scopes
             std::cout << std::endl;
