@@ -458,6 +458,9 @@ AST_expression* parse_block(std::string &code, int& index, bool is_function = fa
 //  - this is used by parse_program ONLY (which means that functions cannot be nested)
 AST_expression* parse_function(std::string &code, int& index){
     TokenData t = get_token(code, index);
+    metadata function_data;
+    function_data.is_function = true;
+    std::string function_name;
     if(t.token != Token::FUNCTION){
         // Error
         throw std::runtime_error("Function missing keyword fn");
@@ -471,6 +474,7 @@ AST_expression* parse_function(std::string &code, int& index){
         throw std::runtime_error("Function missing name");
     }else{
         function = new AST_function(t.lexeme);
+        function_name = t.lexeme;
     }
     
     t = get_token(code, index);
@@ -551,14 +555,19 @@ AST_expression* parse_function(std::string &code, int& index){
         td = get_token(code, copy_index);
         if(td.token == Token::INT){
             // Return type is an integer
+            function_data.type = data_type::INTEGER;
         }else if(td.token == Token::FLOAT){
             // Return type is a float
+            function_data.type = data_type::FLOAT;
         }else if(td.token == Token::BOOL){
             // Return type is a boolean
+            function_data.type = data_type::BOOLEAN;
         }else if(td.token == Token::CHAR){
             // Return type is a char
+            function_data.type = data_type::CHAR;
         }else if(td.token == Token::STRING){
             // Return type is a string
+            function_data.type = data_type::STRING;
         }else{
             // Error
             throw std::runtime_error("Invalid return type");
@@ -569,6 +578,7 @@ AST_expression* parse_function(std::string &code, int& index){
 
     function->setBody(dynamic_cast<AST_block*>(parse_block(code, index, true)));
     SYMBOL_TABLE = SYMBOL_TABLE->scopeOut();
+    SYMBOL_TABLE->addSymbol(function_name, function_data);
     return function;
 }
 
