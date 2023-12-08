@@ -45,7 +45,7 @@ void generate_code(AST_program *program, std::string programName){
 
     // Align scope_size to 16 bytes for stack alignment
     int alignedScopeSize = (SYMBOL_TABLE->scope_size + 15) & ~15;
-    asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for program\n";
+    asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for program. Size: " << SYMBOL_TABLE->scope_size << "\n";
 
     for(auto child: program->expressions){
         child->generate_code();
@@ -109,7 +109,7 @@ void AST_block::generate_code(){
 
     // ALLOCATE STACK SPACE FOR BLOCK
     int alignedScopeSize = (SYMBOL_TABLE->scope_size + 15) & ~15;
-    asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for block\n";
+    asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for block. Size: " << SYMBOL_TABLE->scope_size << "\n";
 
     for(auto child: this->children){
         child->generate_code();
