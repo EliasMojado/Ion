@@ -8,6 +8,7 @@
 #include <queue>
 #include <unordered_map>
 #include <fstream>
+#include <set>
 
 #include "ast.hpp"
 #include "parser.hpp"
@@ -18,8 +19,35 @@
 // Code Generator
 //------------------------------------------------------------------------------------------
 
-// Global variable so all functions can write to the same file
+// REGISTER MANAGER
+// - Keeps track of free registers to use
+class RegisterManager {
+private:
+    std::set<std::string> freeRegisters;
+
+public:
+    RegisterManager() {
+        // Initialize with all available registers
+        freeRegisters = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
+    }
+
+    std::string getFreeRegister() {
+        if (freeRegisters.empty()) {
+            throw std::runtime_error("No free registers available");
+        }
+        std::string reg = *freeRegisters.begin();
+        freeRegisters.erase(freeRegisters.begin());
+        return reg;
+    }
+
+    void releaseRegister(const std::string& reg) {
+        freeRegisters.insert(reg);
+    }
+};
+
+// Global variables declaration
 std::ofstream asmFile;
+RegisterManager regManager; 
 
 // GENERATE: Program
 // - Writes the assembly code for the program
@@ -72,39 +100,87 @@ void generate_code(AST_program *program, std::string programName){
     asmFile.close(); // Close the file
 }
 
-void AST_integer::generate_code(){
-
+codeGenResult AST_integer::generate_code(){
+    std::string reg = regManager.getFreeRegister();
+    asmFile << "    mov " << reg << ", " << this->value << "\n";
+    codeGenResult res;
+    res.registerName = reg;
+    res.type = res_type::INTEGER;
+    return res;
 }
 
-void AST_boolean::generate_code(){
+codeGenResult AST_boolean::generate_code(){
     
 }
 
-void AST_float::generate_code(){
+codeGenResult AST_float::generate_code(){
     
 }
 
-void AST_char::generate_code(){
+codeGenResult AST_char::generate_code(){
     
 }
 
-void AST_string::generate_code(){
+codeGenResult AST_string::generate_code(){
     
 }
 
-void AST_variable::generate_code(){
+codeGenResult AST_variable::generate_code(){
     
 }
 
-void AST_unary::generate_code(){
+codeGenResult AST_unary::generate_code(){
     
 }
 
-void AST_binary::generate_code(){
-    
+codeGenResult AST_binary::generate_code(){
+    // Generate code for LHS and RHS, and get the registers they use
+    codeGenResult lhsReg = LHS->generate_code();
+    codeGenResult rhsReg = RHS->generate_code();
+
+    // Check the operation and perform it
+    if (op == "+") {
+        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+            throw std::runtime_error("Unsupported operation + on non-integer types");
+        }
+        asmFile << "    add " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+    } else if (op == "-") {
+        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+            throw std::runtime_error("Unsupported operation - on non-integer types");
+        }
+        asmFile << "    sub " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+    } else if (op == "*"){
+        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+            throw std::runtime_error("Unsupported operation * on non-integer types");
+        }
+        asmFile << "    imul " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+    } else if (op == "/"){
+        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+            throw std::runtime_error("Unsupported operation / on non-integer types");
+        }
+        asmFile << "    mov rax, " << lhsReg.registerName << "\n";
+        asmFile << "    cqo\n";
+        asmFile << "    idiv " << rhsReg.registerName << "\n";
+        asmFile << "    mov " << lhsReg.registerName << ", rax\n";
+    } else if (op == "%"){
+        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+            throw std::runtime_error("Unsupported operation modulo on non-integer types");
+        }
+        asmFile << "    mov rax, " << lhsReg.registerName << "\n";
+        asmFile << "    cqo\n";
+        asmFile << "    idiv " << rhsReg.registerName << "\n";
+        asmFile << "    mov " << lhsReg.registerName << ", rdx\n";
+    }
+
+    // Release the RHS register as it's no longer needed
+    regManager.releaseRegister(rhsReg.registerName);
+
+    // Return the register holding the result (usually lhsReg)
+
+    return lhsReg;
 }
 
-void AST_block::generate_code(){
+codeGenResult AST_block::generate_code(){
     SYMBOL_TABLE = SYMBOL_TABLE->traverseIN();
 
     // ALLOCATE STACK SPACE FOR BLOCK
@@ -119,25 +195,29 @@ void AST_block::generate_code(){
     asmFile << "    add rsp, " << alignedScopeSize  << "  ; Deallocate stack space for block\n";
 
     SYMBOL_TABLE = SYMBOL_TABLE->traverseOUT();
+
+    codeGenResult res;
+    res.type = res_type::VOID;
+    return res;
 }
 
-void AST_conditional::generate_code(){
+codeGenResult AST_conditional::generate_code(){
     
 }
 
-void AST_loop::generate_code(){
+codeGenResult AST_loop::generate_code(){
     
 }
 
-void AST_function::generate_code(){
+codeGenResult AST_function::generate_code(){
     
 }
 
-void AST_function_call::generate_code(){
+codeGenResult AST_function_call::generate_code(){
     
 }
 
-void AST_return::generate_code(){
+codeGenResult AST_return::generate_code(){
     
 }
 

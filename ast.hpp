@@ -28,6 +28,18 @@ enum class AST_type{
     BLOCK,
 };
 
+// RESULT TYPE
+enum class res_type{
+    INTEGER, CHAR, STRING, FLOAT, BOOLEAN, VOID
+};
+
+// RESULT
+// - data struct that is returned by code generate
+struct codeGenResult{
+    std::string registerName;  // The name of the register holding the result
+    res_type type;            // The data type of the result
+};
+
 // FUNCTION : indentation printing
 // - prints the indentation for DEBUGGING purposes only
 void print_indent(int indent){
@@ -43,7 +55,7 @@ public:
     AST_expression(AST_type type) : type(type) {}
     virtual ~AST_expression() = default;
     virtual void print (int) const = 0;
-    virtual void generate_code() = 0;
+    virtual codeGenResult generate_code() = 0;
 };
 
 //  DERIVED CLASS : Integer
@@ -61,7 +73,7 @@ public:
         std::cout << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_integer(){}
 };
@@ -81,7 +93,7 @@ public:
         std::cout << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_boolean(){}
 };
@@ -101,7 +113,7 @@ public:
         std::cout << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_float(){}
 };
@@ -121,7 +133,7 @@ public:
         std::cout << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_char(){}
 };
@@ -141,7 +153,7 @@ public:
         std::cout << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_string(){}
 };
@@ -161,7 +173,7 @@ public:
         std::cout << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_variable(){}
 };
@@ -188,7 +200,7 @@ public:
         expr->print(indent + 1);
     }
     
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_unary(){}
 };
@@ -217,7 +229,7 @@ public:
         RHS->print(indent + 1);
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_binary(){}
 };
@@ -244,7 +256,7 @@ public:
         std::cout << "}" << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_block(){};
 };
@@ -291,7 +303,7 @@ public:
         std::cout << "}" << std::endl;
     }
     
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_conditional(){}
 };
@@ -318,7 +330,7 @@ public:
         std::cout << "}" << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_loop(){}
 };
@@ -356,7 +368,7 @@ public:
         std::cout << "}" << std::endl;
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_function(){}
 };
@@ -382,7 +394,7 @@ public:
         std::cout << ")" << std::endl;
     }
     
-    void generate_code();
+    codeGenResult generate_code();
     
     ~AST_function_call(){}
 };
@@ -402,7 +414,7 @@ public:
         expr->print(indent + 1);
     }
 
-    void generate_code();
+    codeGenResult generate_code();
 
     ~AST_return(){}
 };
