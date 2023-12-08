@@ -86,14 +86,16 @@ void generate_code(AST_program *program, std::string programName){
 
     for(auto child: program->expressions){
         codeGenResult res = child->generate_code();
-        if(child->type == AST_type::BOOLEAN ||
-           child->type == AST_type::INTEGER ||
-           child->type == AST_type::CHAR ||
-           child->type == AST_type::STRING ||
-           child->type == AST_type::FLOAT ||
-           child->type == AST_type::FUNCTION_CALL){
-                regManager.releaseRegister(res.registerName);
-           }
+        // if(child->type == AST_type::BOOLEAN ||
+        //    child->type == AST_type::INTEGER ||
+        //    child->type == AST_type::CHAR ||
+        //    child->type == AST_type::STRING ||
+        //    child->type == AST_type::FLOAT ||
+        //    child->type == AST_type::FUNCTION_CALL){
+        //         regManager.releaseRegister(res.registerName);
+        //    }
+
+        regManager.releaseRegister(res.registerName);
     }
 
     // Deallocate stack space
@@ -118,11 +120,15 @@ void generate_code(AST_program *program, std::string programName){
 }
 
 codeGenResult CALL_write(AST_function_call *call){
-
+    codeGenResult res;
+    throw std::runtime_error("Function call not implemented");
+    return res;
 }
 
 codeGenResult CALL_read(AST_function_call *call){
-
+    codeGenResult res;
+    throw std::runtime_error("Function call not implemented");
+    return res;
 }
 
 codeGenResult AST_integer::generate_code(){
@@ -149,7 +155,9 @@ codeGenResult AST_boolean::generate_code(){
 }
 
 codeGenResult AST_float::generate_code(){
-    
+    codeGenResult res;
+    throw std::runtime_error("Float not implemented");
+    return res;
 }
 
 codeGenResult AST_char::generate_code(){
@@ -201,7 +209,9 @@ codeGenResult AST_variable::generate_code(){
 }
 
 codeGenResult AST_unary::generate_code(){
-    
+    codeGenResult res;
+    throw std::runtime_error("Unary not implemented");
+    return res;
 }
 
 codeGenResult AST_binary::generate_code(){
@@ -342,15 +352,21 @@ codeGenResult AST_block::generate_code(){
 }
 
 codeGenResult AST_conditional::generate_code(){
-    
+    codeGenResult res;
+    throw std::runtime_error("Conditional not implemented");
+    return res;
 }
 
 codeGenResult AST_loop::generate_code(){
-    
+    codeGenResult res;
+    throw std::runtime_error("Loop not implemented");
+    return res;
 }
 
 codeGenResult AST_function::generate_code(){
-    
+    codeGenResult res;
+    throw std::runtime_error("Function not implemented");
+    return res;
 }
 
 codeGenResult AST_function_call::generate_code(){
@@ -359,10 +375,16 @@ codeGenResult AST_function_call::generate_code(){
     }else if(this->function_name == "read"){
         return CALL_read(this);
     }
+
+    codeGenResult res;
+    throw std::runtime_error("Function call not implemented");
+    return res;
 }
 
 codeGenResult AST_return::generate_code(){
-    
+    codeGenResult res;
+    throw std::runtime_error("Return not implemented");
+    return res;
 }
 
 
