@@ -139,7 +139,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
     }else{
         // No data type
         data.type = data_type::UNKNOWN;
-        data.size = 0;
+        data.size = 8;
     }
     
     // Add the variable to the symbol table
@@ -343,6 +343,7 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
                     break;
                 case Token::STRING_literal:
                     node = new AST_string(t.lexeme);
+                    stringLiterals[t.lexeme] = "str_" + std::to_string(stringLiteralCounter++);
                     break;
                 case Token::IDENTIFIER:
                     node = new AST_variable(t.lexeme);
@@ -498,7 +499,7 @@ AST_expression* parse_function(std::string &code, int& index){
             // Add the parameter to the symbol table
             metadata data;
             data.type = data_type::UNKNOWN;
-            data.size = 0;
+            data.size = 8;
             std::string name = t.lexeme;
 
             int copy_index = index;

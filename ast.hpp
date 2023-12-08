@@ -30,8 +30,52 @@ enum class AST_type{
 
 // RESULT TYPE
 enum class res_type{
-    INTEGER, CHAR, STRING, FLOAT, BOOLEAN, VOID
+    INTEGER, CHAR, STRING, FLOAT, BOOLEAN, VOID,
+    VAR_INTEGER, VAR_CHAR, VAR_STRING, VAR_FLOAT, VAR_BOOLEAN, VAR_UNKNOWN,
 };
+
+// Print result type
+std::ostream& operator<<(std::ostream& os, res_type type) {
+    switch (type) {
+        case res_type::INTEGER:
+            os << "INTEGER";
+            break;
+        case res_type::CHAR:
+            os << "CHAR";
+            break;
+        case res_type::STRING:
+            os << "STRING";
+            break;
+        case res_type::BOOLEAN:
+            os << "BOOLEAN";
+            break;
+        case res_type::FLOAT:
+            os << "FLOAT";
+            break;
+        case res_type::VOID:
+            os << "VOID";
+            break;
+        case res_type::VAR_INTEGER:
+            os << "VAR_INTEGER";
+            break;
+        case res_type::VAR_CHAR:
+            os << "VAR_CHAR";
+            break;
+        case res_type::VAR_STRING:
+            os << "VAR_STRING";
+            break;
+        case res_type::VAR_BOOLEAN:
+            os << "VAR_BOOLEAN";
+            break;
+        case res_type::VAR_FLOAT:
+            os << "VAR_FLOAT";
+            break;
+        case res_type::VAR_UNKNOWN:
+            os << "VAR_UNKNOWN";
+            break;
+    }
+    return os;
+}
 
 // RESULT
 // - data struct that is returned by code generate

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <list>
+#include <map>
 
 // DATA TYPES
 enum class data_type{
@@ -143,5 +144,10 @@ public:
 // GLOBAL SYMBOL TABLE
 Table* SYMBOL_TABLE = new Table(nullptr);
 
+// Map to hold string literals and their corresponding labels
+std::map<std::string, std::string> stringLiterals;
+
+// String literal counter
+int stringLiteralCounter = 0;
 
 #endif

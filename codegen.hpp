@@ -68,6 +68,15 @@ void generate_code(AST_program *program, std::string programName){
     asmFile << "    ; Data section goes here\n";
     asmFile << "    dummy db 0  ; Placeholder to keep the section\n\n";
 
+    // Write all of the string literals
+    for (const auto& pair : stringLiterals) {
+        // Write the string literal with its label
+        asmFile << "    " << pair.second << " db \"" << pair.first << "\", 0" << std::endl;
+
+        // Write the length of the string literal
+        asmFile << "    " << pair.second << "_len = $ - " << pair.second << std::endl;
+    }
+
     asmFile << "section '.text' code readable executable\n";
     asmFile << "start:\n";
 
@@ -76,7 +85,15 @@ void generate_code(AST_program *program, std::string programName){
     asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for program. Size: " << SYMBOL_TABLE->scope_size << "\n";
 
     for(auto child: program->expressions){
-        child->generate_code();
+        codeGenResult res = child->generate_code();
+        if(child->type == AST_type::BOOLEAN ||
+           child->type == AST_type::INTEGER ||
+           child->type == AST_type::CHAR ||
+           child->type == AST_type::STRING ||
+           child->type == AST_type::FLOAT ||
+           child->type == AST_type::FUNCTION_CALL){
+                regManager.releaseRegister(res.registerName);
+           }
     }
 
     // Deallocate stack space
@@ -100,6 +117,14 @@ void generate_code(AST_program *program, std::string programName){
     asmFile.close(); // Close the file
 }
 
+codeGenResult CALL_write(AST_function_call *call){
+
+}
+
+codeGenResult CALL_read(AST_function_call *call){
+
+}
+
 codeGenResult AST_integer::generate_code(){
     std::string reg = regManager.getFreeRegister();
     asmFile << "    mov " << reg << ", " << this->value << "\n";
@@ -110,7 +135,17 @@ codeGenResult AST_integer::generate_code(){
 }
 
 codeGenResult AST_boolean::generate_code(){
-    
+    std::string reg = regManager.getFreeRegister();
+    if(this->value == true){
+        asmFile << "    mov " << reg << ", 1\n";
+    }else{
+        asmFile << "    mov " << reg << ", 0\n";
+    }
+
+    codeGenResult res;
+    res.registerName = reg;
+    res.type = res_type::BOOLEAN;
+    return res;
 }
 
 codeGenResult AST_float::generate_code(){
@@ -118,15 +153,51 @@ codeGenResult AST_float::generate_code(){
 }
 
 codeGenResult AST_char::generate_code(){
-    
+    std::string reg = regManager.getFreeRegister();
+    asmFile << "    mov " << reg << ", '" << this->value << "'\n";
+    codeGenResult res; 
+    res.registerName = reg;
+    res.type = res_type::CHAR;
+    return res; 
 }
 
 codeGenResult AST_string::generate_code(){
-    
+    codeGenResult res;
+    auto it = stringLiterals.find(this->value);
+    if(it != stringLiterals.end()){
+        res.type = res_type::STRING;
+        res.registerName = it->second;
+    }else{
+        throw std::runtime_error("String literal not found in stringLiterals map");
+    }
+
+    return res;
 }
 
 codeGenResult AST_variable::generate_code(){
-    
+    metadata data = SYMBOL_TABLE->getVariable(this->name);
+    std::string reg = regManager.getFreeRegister();
+
+    // Calculate the variable's address and load its value into the register
+    asmFile << "    mov " << reg << ", [rsp + " << data.address << "]" << std::endl;
+
+    codeGenResult res;
+    res.registerName = reg;
+    if(data.type == data_type::INTEGER){
+        res.type = res_type::VAR_INTEGER;
+    }else if(data.type == data_type::BOOLEAN){
+        res.type = res_type::VAR_BOOLEAN;
+    }else if(data.type == data_type::CHAR){
+        res.type = res_type::VAR_CHAR;
+    }else if(data.type == data_type::STRING){
+        res.type = res_type::VAR_STRING;
+    }else if(data.type == data_type::FLOAT){
+        res.type = res_type::VAR_FLOAT;
+    }else if(data.type == data_type::UNKNOWN){
+        res.type = res_type::VAR_UNKNOWN;
+    }
+
+    return res;
 }
 
 codeGenResult AST_unary::generate_code(){
@@ -140,36 +211,105 @@ codeGenResult AST_binary::generate_code(){
 
     // Check the operation and perform it
     if (op == "+") {
-        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
+        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        ){
+            asmFile << "    add " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+        }else{
             throw std::runtime_error("Unsupported operation + on non-integer types");
         }
-        asmFile << "    add " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
     } else if (op == "-") {
-        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
+        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        ){
+            asmFile << "    sub " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+        }else{
             throw std::runtime_error("Unsupported operation - on non-integer types");
         }
-        asmFile << "    sub " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
     } else if (op == "*"){
-        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
+        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        ){
+            asmFile << "    imul " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+        }else{
             throw std::runtime_error("Unsupported operation * on non-integer types");
         }
-        asmFile << "    imul " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
     } else if (op == "/"){
-        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
+        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
+        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        ){
+            asmFile << "    mov rax, " << lhsReg.registerName << "\n";
+            asmFile << "    cqo\n";
+            asmFile << "    idiv " << rhsReg.registerName << "\n";
+            asmFile << "    mov " << lhsReg.registerName << ", rax\n";
+        }else{
             throw std::runtime_error("Unsupported operation / on non-integer types");
         }
-        asmFile << "    mov rax, " << lhsReg.registerName << "\n";
-        asmFile << "    cqo\n";
-        asmFile << "    idiv " << rhsReg.registerName << "\n";
-        asmFile << "    mov " << lhsReg.registerName << ", rax\n";
     } else if (op == "%"){
-        if(lhsReg.type != res_type::INTEGER || rhsReg.type != res_type::INTEGER){
-            throw std::runtime_error("Unsupported operation modulo on non-integer types");
+        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
+        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
+        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        ){
+            asmFile << "    mov rax, " << lhsReg.registerName << "\n";
+            asmFile << "    cqo\n";
+            asmFile << "    idiv " << rhsReg.registerName << "\n";
+            asmFile << "    mov " << lhsReg.registerName << ", rdx\n";
+        }else{
+            throw std::runtime_error("Unsupported operation % on non-integer types");
         }
-        asmFile << "    mov rax, " << lhsReg.registerName << "\n";
-        asmFile << "    cqo\n";
-        asmFile << "    idiv " << rhsReg.registerName << "\n";
-        asmFile << "    mov " << lhsReg.registerName << ", rdx\n";
+    } else if (op == "="){
+         // Ensure LHS is a variable
+        if (LHS->type != AST_type::VARIABLE) {
+            throw std::runtime_error("Left-hand side of assignment must be a variable");
+        }
+
+        // std::cout << lhsReg.type << " " << rhsReg.type << std::endl;
+
+        // Ensure LHS and RHS are the same type
+        if((lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER)||
+            (lhsReg.type == res_type::VAR_BOOLEAN && rhsReg.type == res_type::BOOLEAN)||
+            (lhsReg.type == res_type::VAR_CHAR && rhsReg.type == res_type::CHAR)||
+            (lhsReg.type == res_type::VAR_STRING && rhsReg.type == res_type::STRING)||
+            (lhsReg.type == res_type::VAR_FLOAT && rhsReg.type == res_type::FLOAT) ||
+            (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER)||
+            (lhsReg.type == res_type::VAR_BOOLEAN && rhsReg.type == res_type::VAR_BOOLEAN)||
+            (lhsReg.type == res_type::VAR_CHAR && rhsReg.type == res_type::VAR_CHAR)||
+            (lhsReg.type == res_type::VAR_STRING && rhsReg.type == res_type::VAR_STRING)||
+            (lhsReg.type == res_type::VAR_FLOAT && rhsReg.type == res_type::VAR_FLOAT)
+            ){
+            // Do nothing
+        }else if(lhsReg.type == res_type::VAR_UNKNOWN){
+            metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable*>(LHS)->name);
+            if(rhsReg.type == res_type::INTEGER){
+                data.type = data_type::INTEGER;
+            }else if(rhsReg.type == res_type::BOOLEAN){
+                data.type = data_type::BOOLEAN;
+            }else if(rhsReg.type == res_type::CHAR){
+                data.type = data_type::CHAR;
+            }else if(rhsReg.type == res_type::STRING){
+                data.type = data_type::STRING;
+            }else if(rhsReg.type == res_type::FLOAT){
+                data.type = data_type::FLOAT;
+            }
+        }else{
+            throw std::runtime_error("Unsupported operation = on non-matching types");
+        }
+
+        // Store the RHS value into the LHS variable's location
+        asmFile << "    mov " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
+
+        // Store the LHS value into the variable's location
+        metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable*>(LHS)->name);
+        asmFile << "    mov [rsp + " << data.address << "], " << lhsReg.registerName << std::endl;
     }
 
     // Release the RHS register as it's no longer needed
@@ -214,7 +354,11 @@ codeGenResult AST_function::generate_code(){
 }
 
 codeGenResult AST_function_call::generate_code(){
-    
+    if(this->function_name == "write"){
+        return CALL_write(this);
+    }else if(this->function_name == "read"){
+        return CALL_read(this);
+    }
 }
 
 codeGenResult AST_return::generate_code(){
