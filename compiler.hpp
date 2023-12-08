@@ -20,7 +20,11 @@ void compile(char *programName,std::string code){
     program->print();
     std::cout << std::endl;
     SYMBOL_TABLE->printSymbolTable();
-    
+
+    //remove the .ion in the program name
+    std::string programNameString(programName);
+    programNameString = programNameString.substr(0,programNameString.length()-4);
+    generate_code(program, programNameString);
 }
 
 
