@@ -48,6 +48,7 @@ public:
 // Global variables declaration
 std::ofstream asmFile;
 RegisterManager regManager; 
+int GLOBAL_ADDRESS = 0;
 
 // GENERATE: Program
 // - Writes the assembly code for the program
@@ -80,9 +81,12 @@ void generate_code(AST_program *program, std::string programName){
     asmFile << "section '.text' code readable executable\n";
     asmFile << "start:\n";
 
+    asmFile << "    mov rbp, rsp    ; Set base pointer to the current stack pointer\n";
+
     // Align scope_size to 16 bytes for stack alignment
     int alignedScopeSize = (SYMBOL_TABLE->scope_size + 15) & ~15;
     asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for program. Size: " << SYMBOL_TABLE->scope_size << "\n";
+    GLOBAL_ADDRESS += alignedScopeSize;
 
     for(auto child: program->expressions){
         codeGenResult res = child->generate_code();
@@ -100,6 +104,7 @@ void generate_code(AST_program *program, std::string programName){
 
     // Deallocate stack space
     asmFile << "    add rsp, " << alignedScopeSize  << "  ; Deallocate stack space for program\n";
+    GLOBAL_ADDRESS -= alignedScopeSize;
 
     asmFile << "    mov ecx, 0  ; Exit code\n";
     asmFile << "    call [ExitProcess]\n\n";
@@ -121,13 +126,13 @@ void generate_code(AST_program *program, std::string programName){
 
 codeGenResult CALL_write(AST_function_call *call){
     codeGenResult res;
-    throw std::runtime_error("Function call not implemented");
+    throw std::runtime_error("Function call not implemented yet");
     return res;
 }
 
 codeGenResult CALL_read(AST_function_call *call){
     codeGenResult res;
-    throw std::runtime_error("Function call not implemented");
+    throw std::runtime_error("Function call not implemented yet");
     return res;
 }
 
@@ -156,7 +161,7 @@ codeGenResult AST_boolean::generate_code(){
 
 codeGenResult AST_float::generate_code(){
     codeGenResult res;
-    throw std::runtime_error("Float not implemented");
+    throw std::runtime_error("Float not implemented yet");
     return res;
 }
 
@@ -185,9 +190,19 @@ codeGenResult AST_string::generate_code(){
 codeGenResult AST_variable::generate_code(){
     metadata data = SYMBOL_TABLE->getVariable(this->name);
     std::string reg = regManager.getFreeRegister();
+    int trueAddress;
+    if(data.relative_address == -1){ // Declaration
+        trueAddress = GLOBAL_ADDRESS - data.address;
+        SYMBOL_TABLE->set_relativeAddress(this->name, trueAddress);
 
-    // Calculate the variable's address and load its value into the register
-    asmFile << "    mov " << reg << ", [rsp + " << data.address << "]" << std::endl;
+        // Calculate the variable's address and load its value into the register
+        asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]" << "; Declare variable: " << this->name << std::endl;
+    }else{
+        trueAddress = data.relative_address;
+        
+        // Calculate the variable's address and load its value into the register
+        asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]" << "; Use variable: " << this->name << std::endl;
+    }
 
     codeGenResult res;
     res.registerName = reg;
@@ -210,7 +225,7 @@ codeGenResult AST_variable::generate_code(){
 
 codeGenResult AST_unary::generate_code(){
     codeGenResult res;
-    throw std::runtime_error("Unary not implemented");
+    throw std::runtime_error("Unary not implemented yet");
     return res;
 }
 
@@ -221,40 +236,32 @@ codeGenResult AST_binary::generate_code(){
 
     // Check the operation and perform it
     if (op == "+") {
-        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
-        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        if((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) && 
+            (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)
         ){
             asmFile << "    add " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
         }else{
             throw std::runtime_error("Unsupported operation + on non-integer types");
         }
     } else if (op == "-") {
-        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
-        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        if((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) && 
+            (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)
         ){
             asmFile << "    sub " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
         }else{
             throw std::runtime_error("Unsupported operation - on non-integer types");
         }
     } else if (op == "*"){
-        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
-        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        if((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) && 
+            (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)
         ){
             asmFile << "    imul " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
         }else{
             throw std::runtime_error("Unsupported operation * on non-integer types");
         }
     } else if (op == "/"){
-        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
-        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        if((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) && 
+            (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)
         ){
             asmFile << "    mov rax, " << lhsReg.registerName << "\n";
             asmFile << "    cqo\n";
@@ -264,10 +271,8 @@ codeGenResult AST_binary::generate_code(){
             throw std::runtime_error("Unsupported operation / on non-integer types");
         }
     } else if (op == "%"){
-        if((lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::INTEGER) || // Integer + Integer
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER) || // VarInteger + Integer
-        (lhsReg.type == res_type::INTEGER && rhsReg.type == res_type::VAR_INTEGER) ||   // Integer + VarInteger
-        (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER) // VarInteger + VarInteger
+        if((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) && 
+            (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)
         ){
             asmFile << "    mov rax, " << lhsReg.registerName << "\n";
             asmFile << "    cqo\n";
@@ -282,20 +287,13 @@ codeGenResult AST_binary::generate_code(){
             throw std::runtime_error("Left-hand side of assignment must be a variable");
         }
 
-        // std::cout << lhsReg.type << " " << rhsReg.type << std::endl;
-
         // Ensure LHS and RHS are the same type
-        if((lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::INTEGER)||
-            (lhsReg.type == res_type::VAR_BOOLEAN && rhsReg.type == res_type::BOOLEAN)||
-            (lhsReg.type == res_type::VAR_CHAR && rhsReg.type == res_type::CHAR)||
-            (lhsReg.type == res_type::VAR_STRING && rhsReg.type == res_type::STRING)||
-            (lhsReg.type == res_type::VAR_FLOAT && rhsReg.type == res_type::FLOAT) ||
-            (lhsReg.type == res_type::VAR_INTEGER && rhsReg.type == res_type::VAR_INTEGER)||
-            (lhsReg.type == res_type::VAR_BOOLEAN && rhsReg.type == res_type::VAR_BOOLEAN)||
-            (lhsReg.type == res_type::VAR_CHAR && rhsReg.type == res_type::VAR_CHAR)||
-            (lhsReg.type == res_type::VAR_STRING && rhsReg.type == res_type::VAR_STRING)||
-            (lhsReg.type == res_type::VAR_FLOAT && rhsReg.type == res_type::VAR_FLOAT)
-            ){
+        if((lhsReg.type == res_type::VAR_INTEGER && (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))||
+            (lhsReg.type == res_type::VAR_BOOLEAN && (rhsReg.type == res_type::BOOLEAN || rhsReg.type == res_type::VAR_BOOLEAN))||
+            (lhsReg.type == res_type::VAR_CHAR && (rhsReg.type == res_type::CHAR || rhsReg.type == res_type::VAR_CHAR))||
+            (lhsReg.type == res_type::VAR_STRING && (rhsReg.type == res_type::STRING || rhsReg.type == res_type::VAR_STRING))||
+            (lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::FLOAT || rhsReg.type == res_type::VAR_FLOAT))
+        ){
             // Do nothing
         }else if(lhsReg.type == res_type::VAR_UNKNOWN){
             metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable*>(LHS)->name);
@@ -336,6 +334,7 @@ codeGenResult AST_block::generate_code(){
     // ALLOCATE STACK SPACE FOR BLOCK
     int alignedScopeSize = (SYMBOL_TABLE->scope_size + 15) & ~15;
     asmFile << "    sub rsp, " << alignedScopeSize << "  ; Allocate stack space for block. Size: " << SYMBOL_TABLE->scope_size << "\n";
+    GLOBAL_ADDRESS += alignedScopeSize;
 
     for(auto child: this->children){
         child->generate_code();
@@ -343,6 +342,7 @@ codeGenResult AST_block::generate_code(){
 
     // DEALLOCATE STACK SPACE FOR BLOCK
     asmFile << "    add rsp, " << alignedScopeSize  << "  ; Deallocate stack space for block\n";
+    GLOBAL_ADDRESS -= alignedScopeSize;
 
     SYMBOL_TABLE = SYMBOL_TABLE->traverseOUT();
 
@@ -353,19 +353,19 @@ codeGenResult AST_block::generate_code(){
 
 codeGenResult AST_conditional::generate_code(){
     codeGenResult res;
-    throw std::runtime_error("Conditional not implemented");
+    throw std::runtime_error("Conditional not implemented yet");
     return res;
 }
 
 codeGenResult AST_loop::generate_code(){
     codeGenResult res;
-    throw std::runtime_error("Loop not implemented");
+    throw std::runtime_error("Loop not implemented yet");
     return res;
 }
 
 codeGenResult AST_function::generate_code(){
     codeGenResult res;
-    throw std::runtime_error("Function not implemented");
+    throw std::runtime_error("Function not implemented yet");
     return res;
 }
 
@@ -377,13 +377,13 @@ codeGenResult AST_function_call::generate_code(){
     }
 
     codeGenResult res;
-    throw std::runtime_error("Function call not implemented");
+    throw std::runtime_error("Function call not implemented yet");
     return res;
 }
 
 codeGenResult AST_return::generate_code(){
     codeGenResult res;
-    throw std::runtime_error("Return not implemented");
+    throw std::runtime_error("Return not implemented yet");
     return res;
 }
 

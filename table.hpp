@@ -18,6 +18,7 @@ struct metadata{
     bool is_function;
     int size;
     int address;
+    int relative_address = -1;
 };
 
 // SCOPE
@@ -97,14 +98,14 @@ public:
     // Method to add a variable
     void addSymbol(const std::string& name, metadata& data) {
         if (!isVariableExists(name)) {
-            if(data.type == data_type::UNKNOWN){
-                data.address = -1;
-                symbol_table[name] = data;
-            }else{
-                data.address = scope_size;
-                scope_size += data.size;
-                symbol_table[name] = data;
-            }
+            // if(data.type == data_type::UNKNOWN){
+            //     data.address = -1;
+            //     symbol_table[name] = data;
+            // }else{
+            data.address = scope_size;
+            scope_size += data.size;
+            symbol_table[name] = data;
+            // }
         } else {
             throw std::runtime_error("Variable already exists: " + name);
         }
@@ -119,6 +120,18 @@ public:
             }
         }
         throw std::runtime_error("Variable not found: " + name);
+    }
+
+    // Method to set the relative address of a variable
+    void set_relativeAddress(std::string name, int relativeAddress) {
+        for (Table* current = this; current != nullptr; current = current->parent) {
+            auto it = current->symbol_table.find(name);
+            if (it != current->symbol_table.end()) {
+                it->second.relative_address = relativeAddress;
+                return;
+            }
+        }
+        throw std::runtime_error("Variable not found for setting relative address: " + name);
     }
 
     // Debugging purposes only

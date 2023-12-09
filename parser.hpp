@@ -372,6 +372,7 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
                             parameters.push_back(new AST_char(t.lexeme[0]));
                         }else if(t.token == Token::STRING_literal){
                             parameters.push_back(new AST_string(t.lexeme));
+                            stringLiterals[t.lexeme] = "str_" + std::to_string(stringLiteralCounter++);
                         }else if(t.token == Token::COMMA){
                             // Do nothing
                         }else{
