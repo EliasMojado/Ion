@@ -41,6 +41,9 @@ public:
     }
 
     void releaseRegister(const std::string& reg) {
+        if(reg.empty()){
+            return;
+        }
         freeRegisters.insert(reg);
     }
 };
@@ -143,9 +146,9 @@ codeGenResult CALL_write(AST_function_call *call){
         }else if(param->type == AST_type::BOOLEAN){
             AST_boolean *boolean = dynamic_cast<AST_boolean*>(param);
             if(boolean->value == true)
-                asmFile << "    cinvoke printf, \"TRUE\"" << std::endl;
+                asmFile << "    cinvoke printf, \"1\"" << std::endl;
             else if(boolean->value == false)
-                asmFile << "    cinvoke printf, \"FALSE\"" << std::endl;
+                asmFile << "    cinvoke printf, \"0\"" << std::endl;
         }else if(param->type == AST_type::FLOAT){
             AST_float *floating = dynamic_cast<AST_float*>(param);
             asmFile << "    cinvoke printf, \"%f\", " << floating->value << std::endl;
@@ -154,10 +157,19 @@ codeGenResult CALL_write(AST_function_call *call){
 
             switch (varResult.type) {
                 case res_type::VAR_INTEGER:
-                    // Assuming the integer value is in a register (e.g., rax)
-                    // asmFile << "    mov [buffer], " << varResult.registerName << std::endl;  // Store the lower 32 bits of the register in buffer
                     asmFile << "    cinvoke sprintf, buffer, \"%d\", " << varResult.registerName << std::endl;  // Format the integer into the buffer
                     asmFile << "    cinvoke printf, buffer" << std::endl;  // Print the formatted string
+                    break;
+                case res_type::VAR_BOOLEAN:
+                    asmFile << "    cinvoke sprintf, buffer, \"%d\", " << varResult.registerName << std::endl;  // Format the integer into the buffer
+                    asmFile << "    cinvoke printf, buffer" << std::endl;  // Print the formatted string
+                    break;
+                case res_type::VAR_CHAR:
+                    asmFile << "    cinvoke sprintf, buffer, \"%c\", " << varResult.registerName << std::endl;  // Format the integer into the buffer
+                    asmFile << "    cinvoke printf, buffer" << std::endl;  // Print the formatted string
+                    break;
+                case res_type::VAR_STRING:
+                    asmFile << "    cinvoke printf, " << varResult.registerName << std::endl;  // Print the formatted string
                     break;
                 default:
                     throw std::runtime_error("Unsupported variable type for write function");
@@ -235,6 +247,7 @@ codeGenResult AST_string::generate_code(){
 codeGenResult AST_variable::generate_code(){
     metadata data = SYMBOL_TABLE->getVariable(this->name);
     std::string reg = regManager.getFreeRegister();
+    std::cout << "reg: " << reg << std::endl;
     int trueAddress;
     if(data.relative_address == -1){ // Declaration
         trueAddress = GLOBAL_ADDRESS - (data.address + data.size);
