@@ -73,6 +73,7 @@ void generate_code(AST_program *program, std::string programName){
     asmFile << "    ; Data section goes here\n";
     asmFile << "    intFormat db '%d', 0  ; Format string for integers\n\n";
     asmFile << "    buffer rb 64\n\n";
+    asmFile << "    intstore rq 0\n\n";
 
     // Write all of the string literals
     for (const auto& pair : stringLiterals) {
@@ -187,11 +188,51 @@ codeGenResult CALL_write(AST_function_call *call){
     return res;
 }
 
-codeGenResult CALL_read(AST_function_call *call){
+codeGenResult CALL_read(AST_function_call *call) {
+    for (auto& param : call->parameters) {
+        if (param->type == AST_type::VARIABLE) {
+            codeGenResult varResult = param->generate_code();
+
+            // Assuming the variable type is specified by the variable itself
+            AST_type expectedType = dynamic_cast<AST_variable*>(param)->getVarType();
+
+            switch (expectedType) {
+                case AST_type::INTEGER:
+                    asmFile << "    cinvoke scanf, \"%d\", intstore" << std::endl;
+                    asmFile << "    mov " << varResult.registerName << ", [intstore]" << std::endl;
+                    asmFile << "    mov [rbp - " << varResult.trueAd << "], " << varResult.registerName << std::endl;
+                    break;
+
+                case AST_type::CHAR:
+                    asmFile << "    lea rdi, [buffer]" << std::endl;
+                    asmFile << "    cinvoke scanf, \"%c\", rdi" << std::endl;
+                    asmFile << "    mov " << varResult.registerName << ", buffer" << std::endl;
+                    break;
+
+                case AST_type::BOOLEAN:
+                    asmFile << "    lea rdi, [buffer]" << std::endl;
+                    asmFile << "    cinvoke scanf, \"%d\", rdi" << std::endl;
+                    asmFile << "    movzx " << varResult.registerName << ", byte buffer" << std::endl;
+                    break;
+
+                // Add cases for other variable types as needed
+
+                default:
+                    throw std::runtime_error("Unsupported variable type for read function");
+            }
+
+            // Release the register after use
+            regManager.releaseRegister(varResult.registerName);
+        } else {
+            throw std::runtime_error("Unsupported parameter type for read function");
+        }
+    }
+
     codeGenResult res;
-    throw std::runtime_error("Function call not implemented yet");
+    res.type = res_type::VOID; // read function doesn't return a value
     return res;
 }
+
 
 codeGenResult AST_integer::generate_code(){
     std::string reg = regManager.getFreeRegister();
@@ -263,6 +304,7 @@ codeGenResult AST_variable::generate_code(){
 
     codeGenResult res;
     res.registerName = reg;
+    res.trueAd = trueAddress;
     if(data.type == data_type::INTEGER){
         res.type = res_type::VAR_INTEGER;
     }else if(data.type == data_type::BOOLEAN){

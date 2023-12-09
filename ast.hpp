@@ -82,6 +82,7 @@ std::ostream& operator<<(std::ostream& os, res_type type) {
 struct codeGenResult{
     std::string registerName;  // The name of the register holding the result
     res_type type;            // The data type of the result
+    int trueAd;                 // True address
 };
 
 // FUNCTION : indentation printing
@@ -205,6 +206,8 @@ public:
 //  DERIVED CLASS : Variable
 //  - Stores a variable name
 class AST_variable : public AST_expression{
+private:
+    AST_type variableType;
 public:
     std::string name;
     AST_variable(std::string name) : AST_expression(AST_type::VARIABLE) {
@@ -215,6 +218,14 @@ public:
         print_indent(indent);
         std::cout << "Variable: " << name;
         std::cout << std::endl;
+    }
+    
+    AST_type getVarType() const {
+        return variableType;
+    }
+
+    void setVarType(AST_type type) {
+        variableType = type;
     }
 
     codeGenResult generate_code();
