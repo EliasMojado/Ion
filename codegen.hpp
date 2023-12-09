@@ -111,7 +111,8 @@ void generate_code(AST_program *program, std::string programName){
     asmFile << "    call [ExitProcess]\n\n";
 
     asmFile << "section '.idata' import data readable writeable\n";
-    // asmFile << "library msvcrt, 'msvcrt.dll' kernel32, 'KERNEL32.DLL'\n";
+    asmFile << "library msvcrt, 'msvcrt.dll', kernel32, 'kernel32.dll'\n";
+    asmFile << "import msvcrt, printf, 'printf', scanf, 'scanf', getch, '_getch'\n";
     asmFile << "    dd      0,0,0,RVA kernel_name,RVA kernel_table\n";
     asmFile << "    dd      0,0,0,0,0\n\n";
 
@@ -128,39 +129,31 @@ void generate_code(AST_program *program, std::string programName){
 
 codeGenResult CALL_write(AST_function_call *call){
     for (auto& param : call->parameters) {
-        codeGenResult paramResult = param->generate_code();
-
-        switch (paramResult.type) {
-            case res_type::VAR_INTEGER:
-            case res_type::INTEGER:
-                // Assuming a function `print_integer` that prints an integer.
-                asmFile << "    mov rsi, " << paramResult.registerName << "\n";
-                asmFile << "    call print_integer\n";
-                break;
-
-            case res_type::VAR_STRING:
-            case res_type::STRING:
-                // Assuming a function `print_string` that prints a string.
-                // If param is a string literal, paramResult.registerName holds the label.
-                asmFile << "    lea rsi, [" << paramResult.registerName << "]\n";
-                asmFile << "    call print_string\n";
-                break;
-
-            case res_type::VAR_CHAR:
-            case res_type::CHAR:
-                // Assuming a function `print_char` that prints a character.
-                asmFile << "    movzx rsi, byte [" << paramResult.registerName << "]\n";
-                asmFile << "    call print_char\n";
-                break;
-
-            // Additional cases for other types as needed.
-
-            default:
-                throw std::runtime_error("Unsupported type for write function");
+        if(param->type == AST_type::STRING){
+            // Find the label
+            std::string label = stringLiterals.find(dynamic_cast<AST_string*>(param)->value)->second;
+            asmFile << "    cinvoke printf, " << label << std::endl;
+        }else if(param->type == AST_type::INTEGER){
+            AST_integer *integer = dynamic_cast<AST_integer*>(param);
+            asmFile << "    cinvoke printf, \"%i\", " << integer->value << std::endl;
+        }else if(param->type == AST_type::CHAR){
+            AST_char *character = dynamic_cast<AST_char*>(param);
+            asmFile << "    cinvoke printf, \"%c\", " << character->value << std::endl;
+        }else if(param->type == AST_type::BOOLEAN){
+            AST_boolean *boolean = dynamic_cast<AST_boolean*>(param);
+            if(boolean->value == true)
+                asmFile << "    cinvoke printf, \"TRUE\"" << std::endl;
+            else if(boolean->value == false)
+                asmFile << "    cinvoke printf, \"FALSE\"" << std::endl;
+        }else if(param->type == AST_type::FLOAT){
+            AST_float *floating = dynamic_cast<AST_float*>(param);
+            asmFile << "    cinvoke printf, \"%f\", " << floating->value << std::endl;
+        }else if(param->type == AST_type::VARIABLE){
+            codeGenResult res = param->generate_code();
+            
+        }else{
+            throw std::runtime_error("Unsupported parameter type for write function");
         }
-
-        // Release the register used for the parameter.
-        regManager.releaseRegister(paramResult.registerName);
     }
 
     codeGenResult res;
