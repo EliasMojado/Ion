@@ -247,7 +247,6 @@ codeGenResult AST_string::generate_code(){
 codeGenResult AST_variable::generate_code(){
     metadata data = SYMBOL_TABLE->getVariable(this->name);
     std::string reg = regManager.getFreeRegister();
-    std::cout << "reg: " << reg << std::endl;
     int trueAddress;
     if(data.relative_address == -1){ // Declaration
         trueAddress = GLOBAL_ADDRESS - (data.address + data.size);
@@ -356,15 +355,15 @@ codeGenResult AST_binary::generate_code(){
         }else if(lhsReg.type == res_type::VAR_UNKNOWN){
             metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable*>(LHS)->name);
             if(rhsReg.type == res_type::INTEGER){
-                data.type = data_type::INTEGER;
+                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::INTEGER);
             }else if(rhsReg.type == res_type::BOOLEAN){
-                data.type = data_type::BOOLEAN;
+                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::BOOLEAN);
             }else if(rhsReg.type == res_type::CHAR){
-                data.type = data_type::CHAR;
+                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::CHAR);
             }else if(rhsReg.type == res_type::STRING){
-                data.type = data_type::STRING;
+                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::STRING);
             }else if(rhsReg.type == res_type::FLOAT){
-                data.type = data_type::FLOAT;
+                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::FLOAT);
             }
         }else{
             throw std::runtime_error("Unsupported operation = on non-matching types");

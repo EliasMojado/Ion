@@ -134,6 +134,18 @@ public:
         throw std::runtime_error("Variable not found for setting relative address: " + name);
     }
 
+    // Method to change the type of a variable
+    void changeType(std::string name, data_type type) {
+        for (Table* current = this; current != nullptr; current = current->parent) {
+            auto it = current->symbol_table.find(name);
+            if (it != current->symbol_table.end()) {
+                it->second.type = type;
+                return;
+            }
+        }
+        throw std::runtime_error("Variable not found for changing type: " + name);
+    }
+
     // Debugging purposes only
     void printSymbolTable(int indent = 0) const {
         if(indent == 0) std::cout << "Symbol Table:" << std::endl;
