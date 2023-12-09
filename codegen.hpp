@@ -192,14 +192,14 @@ codeGenResult AST_variable::generate_code(){
     std::string reg = regManager.getFreeRegister();
     int trueAddress;
     if(data.relative_address == -1){ // Declaration
-        trueAddress = GLOBAL_ADDRESS - data.address;
+        trueAddress = GLOBAL_ADDRESS - (data.address + data.size);
         SYMBOL_TABLE->set_relativeAddress(this->name, trueAddress);
 
         // Calculate the variable's address and load its value into the register
         asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]" << "; Declare variable: " << this->name << std::endl;
     }else{
         trueAddress = data.relative_address;
-        
+
         // Calculate the variable's address and load its value into the register
         asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]" << "; Use variable: " << this->name << std::endl;
     }
