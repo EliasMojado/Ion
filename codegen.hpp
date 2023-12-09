@@ -68,7 +68,8 @@ void generate_code(AST_program *program, std::string programName){
 
     asmFile << "section '.data' data readable writeable\n";
     asmFile << "    ; Data section goes here\n";
-    asmFile << "    dummy db 0  ; Placeholder to keep the section\n\n";
+    asmFile << "    intFormat db '%d', 0  ; Format string for integers\n\n";
+    asmFile << "    buffer rb 64\n\n";
 
     // Write all of the string literals
     for (const auto& pair : stringLiterals) {
@@ -112,7 +113,7 @@ void generate_code(AST_program *program, std::string programName){
 
     asmFile << "section '.idata' import data readable writeable\n";
     asmFile << "library msvcrt, 'msvcrt.dll', kernel32, 'kernel32.dll'\n";
-    asmFile << "import msvcrt, printf, 'printf', scanf, 'scanf', getch, '_getch'\n";
+    asmFile << "import msvcrt, printf, 'printf', scanf, 'scanf', getch, '_getch', sprintf, 'sprintf'\n";
     asmFile << "    dd      0,0,0,RVA kernel_name,RVA kernel_table\n";
     asmFile << "    dd      0,0,0,0,0\n\n";
 
@@ -149,8 +150,21 @@ codeGenResult CALL_write(AST_function_call *call){
             AST_float *floating = dynamic_cast<AST_float*>(param);
             asmFile << "    cinvoke printf, \"%f\", " << floating->value << std::endl;
         }else if(param->type == AST_type::VARIABLE){
-            codeGenResult res = param->generate_code();
-            
+            codeGenResult varResult = param->generate_code();
+
+            switch (varResult.type) {
+                case res_type::VAR_INTEGER:
+                    // Assuming the integer value is in a register (e.g., rax)
+                    // asmFile << "    mov [buffer], " << varResult.registerName << std::endl;  // Store the lower 32 bits of the register in buffer
+                    asmFile << "    cinvoke sprintf, buffer, \"%d\", " << varResult.registerName << std::endl;  // Format the integer into the buffer
+                    asmFile << "    cinvoke printf, buffer" << std::endl;  // Print the formatted string
+                    break;
+                default:
+                    throw std::runtime_error("Unsupported variable type for write function");
+            }
+
+            // Release the register after use
+            regManager.releaseRegister(varResult.registerName);
         }else{
             throw std::runtime_error("Unsupported parameter type for write function");
         }
@@ -348,7 +362,7 @@ codeGenResult AST_binary::generate_code(){
 
         // Store the LHS value into the variable's location
         metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable*>(LHS)->name);
-        asmFile << "    mov [rsp + " << data.address << "], " << lhsReg.registerName << std::endl;
+        asmFile << "    mov [rbp - " << data.relative_address << "], " << lhsReg.registerName << "; store to lhs"<< std::endl;
     }
 
     // Release the RHS register as it's no longer needed
