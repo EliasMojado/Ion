@@ -73,9 +73,10 @@ void generate_code(AST_program *program, std::string programName){
     asmFile << "    ; Data section goes here\n";
     asmFile << "    intFormat db '%d', 0  ; Format string for integers\n\n";
     asmFile << "    buffer rb 64\n\n";
-    asmFile << "    intstore rq 0\n\n";
-    asmFile << "    charstore db ' '\n\n";
-    asmFile << "    boolstore rb 1\n\n";
+    asmFile << "    intstore rq 0\n";
+    asmFile << "    charstore db ' '\n";
+    asmFile << "    boolstore rb 1\n";
+    asmFile << "    stringstore db ' ', 0\n\n";
 
     // Write all of the string literals
     for (const auto& pair : stringLiterals) {
@@ -214,6 +215,12 @@ codeGenResult CALL_read(AST_function_call *call) {
                 case data_type::BOOLEAN:// still needs more refinement on this part: problem on storing boolean value and writing it afterwards
                     asmFile << "    cinvoke scanf, \"%d\", boolstore" << std::endl;
                     asmFile << "    movzx " << varResult.registerName << ", byte [boolstore]" << std::endl;
+                    asmFile << "    mov [rbp - " << varResult.trueAd << "], " << varResult.registerName << std::endl;
+                    break;
+
+                case data_type::STRING:
+                    asmFile << "    cinvoke scanf, \"%s\", stringstore" << std::endl;
+                    asmFile << "    lea " << varResult.registerName << ", [stringstore]" << std::endl;
                     asmFile << "    mov [rbp - " << varResult.trueAd << "], " << varResult.registerName << std::endl;
                     break;
 
