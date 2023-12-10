@@ -155,7 +155,6 @@ codeGenResult CALL_write(AST_function_call *call){
             asmFile << "    cinvoke printf, \"%f\", " << floating->value << std::endl;
         }else if(param->type == AST_type::VARIABLE){
             codeGenResult varResult = param->generate_code();
-
             switch (varResult.type) {
                 case res_type::VAR_INTEGER:
                     asmFile << "    cinvoke sprintf, buffer, \"%d\", " << varResult.registerName << std::endl;  // Format the integer into the buffer
@@ -398,17 +397,18 @@ codeGenResult AST_binary::generate_code(){
         ){
             // Do nothing
         }else if(lhsReg.type == res_type::VAR_UNKNOWN){
-            metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable*>(LHS)->name);
-            if(rhsReg.type == res_type::INTEGER){
-                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::INTEGER);
-            }else if(rhsReg.type == res_type::BOOLEAN){
-                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::BOOLEAN);
-            }else if(rhsReg.type == res_type::CHAR){
-                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::CHAR);
-            }else if(rhsReg.type == res_type::STRING){
-                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::STRING);
-            }else if(rhsReg.type == res_type::FLOAT){
-                SYMBOL_TABLE->changeType(dynamic_cast<AST_variable*>(LHS)->name, data_type::FLOAT);
+            AST_variable* var = dynamic_cast<AST_variable*>(LHS);
+            metadata data = SYMBOL_TABLE->getVariable(var->name);
+            if(rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER){
+                SYMBOL_TABLE->changeType(var->name, data_type::INTEGER);
+            }else if(rhsReg.type == res_type::BOOLEAN || rhsReg.type == res_type::VAR_BOOLEAN){
+                SYMBOL_TABLE->changeType(var->name, data_type::BOOLEAN);
+            }else if(rhsReg.type == res_type::CHAR || rhsReg.type == res_type::VAR_CHAR){
+                SYMBOL_TABLE->changeType(var->name, data_type::CHAR);
+            }else if(rhsReg.type == res_type::STRING || rhsReg.type == res_type::VAR_STRING){
+                SYMBOL_TABLE->changeType(var->name, data_type::STRING);
+            }else if(rhsReg.type == res_type::FLOAT || rhsReg.type == res_type::VAR_FLOAT){
+                SYMBOL_TABLE->changeType(var->name, data_type::FLOAT);
             }
         }else{
             throw std::runtime_error("Unsupported operation = on non-matching types");
