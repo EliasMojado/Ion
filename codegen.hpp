@@ -194,22 +194,22 @@ codeGenResult CALL_read(AST_function_call *call) {
             codeGenResult varResult = param->generate_code();
 
             // Assuming the variable type is specified by the variable itself
-            AST_type expectedType = dynamic_cast<AST_variable*>(param)->getVarType();
+            data_type expectedType = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable*>(param)->name).type;
 
             switch (expectedType) {
-                case AST_type::INTEGER:
+                case data_type::INTEGER:
                     asmFile << "    cinvoke scanf, \"%d\", intstore" << std::endl;
                     asmFile << "    mov " << varResult.registerName << ", [intstore]" << std::endl;
                     asmFile << "    mov [rbp - " << varResult.trueAd << "], " << varResult.registerName << std::endl;
                     break;
 
-                case AST_type::CHAR:
+                case data_type::CHAR:
                     asmFile << "    lea rdi, [buffer]" << std::endl;
                     asmFile << "    cinvoke scanf, \"%c\", rdi" << std::endl;
                     asmFile << "    mov " << varResult.registerName << ", buffer" << std::endl;
                     break;
 
-                case AST_type::BOOLEAN:
+                case data_type::BOOLEAN:
                     asmFile << "    lea rdi, [buffer]" << std::endl;
                     asmFile << "    cinvoke scanf, \"%d\", rdi" << std::endl;
                     asmFile << "    movzx " << varResult.registerName << ", byte buffer" << std::endl;
