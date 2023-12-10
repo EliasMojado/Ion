@@ -215,6 +215,9 @@ codeGenResult CALL_read(AST_function_call *call) {
                     asmFile << "    movzx " << varResult.registerName << ", byte buffer" << std::endl;
                     break;
 
+                case data_type::UNKNOWN:
+                    throw std::runtime_error("Cannot read into a variable of unknown type");
+
                 // Add cases for other variable types as needed
 
                 default:
