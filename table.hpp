@@ -11,6 +11,30 @@ enum class data_type{
     INTEGER, CHAR, STRING, FLOAT, BOOLEAN, UNKNOWN
 };
 
+std::ostream& operator<<(std::ostream& os, data_type type) {
+    switch (type) {
+        case data_type::INTEGER:
+            os << "data_type INTEGER";
+            break;
+        case data_type::CHAR:
+            os << "data_type CHAR";
+            break;
+        case data_type::STRING:
+            os << "data_type STRING";
+            break;
+        case data_type::BOOLEAN:
+            os << "data_type BOOLEAN";
+            break;
+        case data_type::FLOAT:
+            os << "data_type FLOAT";
+            break;
+        case data_type::UNKNOWN:
+            os << "data_type UNKNOWN";
+            break;
+    }
+    return os;
+}
+
 // METADATA
 // This is a struct that stores the metadata of each variable
 struct metadata{
