@@ -10,6 +10,7 @@
 #include "ast.hpp"
 #include "table.hpp"
 #include "lexer.hpp"   
+#include "error.hpp"
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // SECTION : SYNTACTIC ANALYSIS
@@ -50,33 +51,53 @@ AST_expression* parse_return(std::string&, int&);
 
 //  PARSE : Program
 //  - this parses the entire program
+
+int line_counter = 1; // for error handling, detects line before the error
+
+
+
 AST_program* parse_program(std::string &code){    
     AST_program* program = new AST_program();
 
     int index = 0;
+    
     while(index < code.size()){
         int copy_index = index;
         TokenData td = get_token(code, copy_index);
         if(td.token == Token::NEW_LINE || td.token == Token::SEMICOLON || code[index] == ' ' || code[index] == '\t'){
+            
+            if(td.token == Token::NEW_LINE){
+                // std::cout<<"found new line"<<std::endl;
+                line_counter++;
+            }
+
             index++;
             continue;
-        }
 
+        }
         if(td.token == Token::LET){ // Declaration found
+            line_counter++;
             program->addExpression(parse_declaration(code, index));
         }else if (td.token == Token::FUNCTION){ // Function found
+            line_counter++;
             program->addExpression(parse_function(code, index));
         }else if (td.token == Token::IF){ // Conditional found
+            line_counter++;
             program->addExpression(parse_conditional(code, index));
         }else if (td.token == Token::WHILE){ // Loop found
+            line_counter++;
             program->addExpression(parse_loop(code, index));  
         }else if (td.token == Token::OPEN_BRACE){ 
+            line_counter++;
             program->addExpression(parse_block(code, index, false));  // block found
         }else if (td.token == Token::RETURN) { 
+            line_counter++;
             program->addExpression(parse_return(code, index)); // return found
         }else{
             program->addExpression(parse_expression(code, index, false));
         }
+        
+
     }
     return program;
 }
@@ -90,9 +111,11 @@ AST_expression* parse_declaration(std::string &code, int& index){
     std::string name;
     metadata data;
 
+try{
     if(t.token != Token::LET){
         // Error
-        throw std::runtime_error("Expected keyword LET in a declaration");
+        // throw std::runtime_error("Expected keyword LET in a declaration");
+        throw SyntaxError("Expected keyword LET in a declaration", line_counter);
         return nullptr;
     }
     
@@ -103,7 +126,8 @@ AST_expression* parse_declaration(std::string &code, int& index){
         name = t.lexeme;
     }else{
         // Error
-        throw std::runtime_error("Expected identifier");
+        // throw std::runtime_error("Expected identifier");
+        throw SyntaxError("Expected identifier", line_counter);
     }
 
     t = get_token(code, index);
@@ -132,7 +156,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
             data.size = 8;
         }else{
             // Error
-            throw std::runtime_error("Expected data type");
+            throw SyntaxError("Expected data type", line_counter);
         }
         
         t = get_token(code, index);
@@ -155,10 +179,13 @@ AST_expression* parse_declaration(std::string &code, int& index){
         return binOpDeclartion;
     }else{
         // Error
-        throw std::runtime_error("Unexpected Token");
+        throw SyntaxError("Unexpected Token", line_counter);
     }
 
-
+} catch (SyntaxError& e) {
+    std::cout << e.getMessage() << std::endl;
+    exit(1);
+    }
     return nullptr;   
 }
 
@@ -167,6 +194,7 @@ AST_expression* parse_declaration(std::string &code, int& index){
 //  - Binary operation, function call, variables, literals
 //  - This is implemented using the Shunting Yard algorithm
 AST_expression* parse_expression(std::string &code, int& index, bool condition = false){
+try{
     TokenData t = get_token(code, index);
     TokenData lastToken;
     lastToken.lexeme = "";
@@ -248,7 +276,8 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
                     operand_queue.push(temp);
                 }else{
                     // Error
-                    throw std::runtime_error("Invalid parameter");
+                    // throw std::runtime_error("Invalid parameter");
+                    throw SyntaxError("Invalid parameter", line_counter);
                 }
                 temp = get_token(code, index);
             }
@@ -274,16 +303,24 @@ AST_expression* parse_expression(std::string &code, int& index, bool condition =
 
     if(expr == nullptr){
         // Error
-        throw std::runtime_error("Invalid expression");
+        // throw std::runtime_error("Invalid expression");
+        throw SyntaxError("Invalid expression", line_counter);
     }
 
     return expr;
+
+} catch (SyntaxError& e) {
+    std::cout << e.getMessage() << std::endl;
+    exit(1);
+}
 }
 
 // BUILD EXPRESSION
 // - this builds the expression from the queue of tokens
 // - this is used by the Shunting Yard algorithm
 AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
+
+try{
     std::stack<AST_expression*> ast_stack;
 
     while (!operand_queue.empty()) {
@@ -300,7 +337,8 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
         ) {
             if(ast_stack.size() < 2){
                 // Error
-                throw std::runtime_error("Not enough operands for operator");
+                // throw std::runtime_error("Not enough operands for operator");
+                throw SyntaxError("Not enough operands for operator", line_counter);
             }
             AST_expression* right = ast_stack.top(); ast_stack.pop();
             AST_expression* left = ast_stack.top(); ast_stack.pop();
@@ -309,7 +347,8 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
             if (t.lexeme == "=") {
                 if (!is_assignable(left)) {
                     // Error
-                    throw std::runtime_error("Left-hand side of assignment is not assignable");
+                    // throw std::runtime_error("Left-hand side of assignment is not assignable");
+                    throw SyntaxError("Left-hand side of assignment is not assignable", line_counter);
                 }
             }
 
@@ -318,7 +357,8 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
         }else if (t.token == Token::UNARY_OPERATOR) { 
             if (ast_stack.empty()) {
                 // Error
-                throw std::runtime_error("No operand for unary operator");
+                // throw std::runtime_error("No operand for unary operator");
+                throw SyntaxError("No operand for unary operator", line_counter);
             }
 
             AST_expression* operand = ast_stack.top(); ast_stack.pop();
@@ -354,7 +394,8 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
                     t = operand_queue.front();
                     operand_queue.pop();
                     if(t.token != Token::OPEN_PAREN){
-                        throw std::runtime_error("Function call missing open paren");
+                        // throw std::runtime_error("Function call missing open paren");
+                        throw SyntaxError("Function call missing open paren", line_counter);
                     }
                     
                     t = operand_queue.front();
@@ -377,7 +418,8 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
                             // Do nothing
                         }else{
                             // Error
-                            throw std::runtime_error("Invalid parameter");
+                            // throw std::runtime_error("Invalid parameter");
+                            throw SyntaxError("Invalid parameter", line_counter);
                         }
                         t = operand_queue.front();
                         operand_queue.pop();
@@ -388,7 +430,8 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
                     break;
                 default:
                     // Error
-                    throw std::runtime_error("Unknown token type");
+                    // throw std::runtime_error("Unknown token type");
+                    throw SyntaxError("Unknown token type", line_counter);
             }
         }
 
@@ -398,6 +441,10 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
 
     // The last node on the stack is the root of the AST
     return ast_stack.empty() ? nullptr : ast_stack.top();
+} catch (SyntaxError& e) {
+    std::cout << e.getMessage() << std::endl;
+    exit(1);
+}
 }
 
 // PARSE: Block
@@ -405,12 +452,14 @@ AST_expression*     build_expression(std::queue<TokenData>& operand_queue) {
 // - similar to parse_program, but this is used for parsing blocks{...}
 // - this is used by parse_conditional,parse_loop and parse_function
 AST_expression* parse_block(std::string &code, int& index, bool is_function = false){
+try{
     AST_block* block = new AST_block();
     TokenData t = get_token(code, index);
 
     if(t.token != Token::OPEN_BRACE){
         // Error
-        throw std::runtime_error("Block missing open brace");
+        // throw std::runtime_error("Block missing open brace");
+        throw SyntaxError("Block missing open brace", line_counter);
     }
 
     if(!is_function){
@@ -425,7 +474,8 @@ AST_expression* parse_block(std::string &code, int& index, bool is_function = fa
             index += 1;
         }else if(td.token == Token::END_OF_FILE || code.size() <= index){
             // Error
-            throw std::runtime_error("Block missing close brace");
+            // throw std::runtime_error("Block missing close brace");
+            throw SyntaxError("Block missing close brace", line_counter);
         }else if(td.token == Token::LET){ // Declaration found
             block->addChild(parse_declaration(code, index));
         }else if (td.token == Token::IF){ // Conditional found
@@ -452,6 +502,10 @@ AST_expression* parse_block(std::string &code, int& index, bool is_function = fa
     // index++;
 
     return block;
+} catch (SyntaxError& e) {
+    std::cout << e.getMessage() << std::endl;
+    exit(1);
+}
 }
 
 //  PARSE: Function
@@ -465,6 +519,10 @@ AST_expression* parse_function(std::string &code, int& index){
     if(t.token != Token::FUNCTION){
         // Error
         throw std::runtime_error("Function missing keyword fn");
+    }
+
+    if(t.token == Token::NEW_LINE){
+        line_counter++;
     }
 
     t = get_token(code, index);

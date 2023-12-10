@@ -1,3 +1,44 @@
+#ifndef ERROR_HPP
+#define ERROR_HPP
+
+#include <iostream> 
+#include <string>
+#include <list> 
+#include <stack>
+#include <queue> 
+
+#include "parser.hpp"
+#include "table.hpp"
+
+
+class SyntaxError {
+public:
+    SyntaxError(const std::string& message, int line)
+        : message_("\t======== ERROR FOUND ========\nSyntax Error on or after line " + std::to_string(line) + ": " + message + "\n"), hasError_(true) {}
+    SyntaxError() : hasError_(false) {}
+    std::string getMessage() const {
+        return message_;
+    }
+    bool hasError() const {
+        return hasError_;
+    }
+private:
+    std::string message_;
+    bool hasError_;
+};
+
+
+#endif
+
+/* Other Notes: 
+    - line counter still inconsistent
+        - doesn't work for blocks/scope
+
+    - not sure how to implement with asm
+*/
+
+
+
 /* 
 List of errors (in order of parser.hpp):
     1. invalid declaration 
@@ -31,4 +72,7 @@ List of errors (in order of parser.hpp):
     6. return
         1. expected keyword RETURN
 */
+
+
+/* try to pass index and check whole code which index the error is found*/
 
