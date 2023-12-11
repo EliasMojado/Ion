@@ -94,7 +94,7 @@ AST_program* parse_program(std::string &code){
             line_counter++;
             program->addExpression(parse_return(code, index)); // return found
         }else{
-            // line_counter++;
+            line_counter++;
             program->addExpression(parse_expression(code, index, false));
         }
         
