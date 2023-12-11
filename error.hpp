@@ -4,29 +4,57 @@
 #include <iostream> 
 #include <string>
 #include <list> 
-#include <stack>
-#include <queue> 
 
 #include "parser.hpp"
 #include "table.hpp"
 
+enum class ErrorType;
+std::string ErrorTypeToString(ErrorType type);
 
-class SyntaxError {
+enum class ErrorType { 
+    SYNTAX_ERROR, // grammar violation
+    SEMANTIC_ERROR, // type checking, expected datatype
+    TYPE_ERROR, // incompatible data types
+    RUNTIME_ERROR, // unexpected conditions or invalid operations
+    REFERENCE_ERROR, // accessing variable before declaration
+    SCOPE_ERROR,  // unbalanced braces
+    FUNCTION_ERROR, // invalid parameters
+};
+
+
+class Error {
 public:
-    SyntaxError(const std::string& message, int line)
-        : message_("\t======== ERROR FOUND ========\nSyntax Error on or after line " + std::to_string(line) + ": " + message + "\n"), hasError_(true) {}
-    SyntaxError() : hasError_(false) {}
+    Error(ErrorType type, const std::string& message, int line)
+        : type_(type), message_("\t======== ERROR FOUND ========\n" + ErrorTypeToString(type) + " on or after line " + std::to_string(line) + ": " + message + "\n"), hasError_(true) {}
+    Error() : type_(ErrorType::SYNTAX_ERROR), hasError_(false) {}
+    
     std::string getMessage() const {
         return message_;
     }
     bool hasError() const {
         return hasError_;
     }
+
+    ErrorType getType() const {
+        return type_;
+    }
 private:
+    ErrorType type_;
     std::string message_;
     bool hasError_;
 };
 
+
+std::string ErrorTypeToString(ErrorType type) {
+    switch(type) {
+        case ErrorType::SYNTAX_ERROR: return "Syntax Error";
+        case ErrorType::SCOPE_ERROR: return "Scope Error";
+        case ErrorType::FUNCTION_ERROR: return "Function Error";
+        case ErrorType::RUNTIME_ERROR: return "Runtime Error";
+        case ErrorType::SEMANTIC_ERROR: return "Semantic Error";
+        default: return "Unknown Error";
+    }
+}
 
 #endif
 
