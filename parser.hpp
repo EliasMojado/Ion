@@ -94,7 +94,7 @@ AST_program* parse_program(std::string &code){
             line_counter++;
             program->addExpression(parse_return(code, index)); // return found
         }else{
-            line_counter++;
+            // line_counter++;
             program->addExpression(parse_expression(code, index, false));
         }
         
@@ -115,7 +115,6 @@ AST_expression* parse_declaration(std::string &code, int& index){
 try{
     if(t.token != Token::LET){
         // Error
-        // throw std::runtime_error("Expected keyword LET in a declaration");
         throw Error(ErrorType::SYNTAX_ERROR, "Expected keyword LET in a declaration", line_counter);
         return nullptr;
     }
@@ -127,7 +126,6 @@ try{
         name = t.lexeme;
     }else{
         // Error
-        // throw std::runtime_error("Expected identifier");
         throw Error(ErrorType::SYNTAX_ERROR, "Expected identifier", line_counter);
     }
 
@@ -277,7 +275,6 @@ try{
                     operand_queue.push(temp);
                 }else{
                     // Error
-                    // throw std::runtime_error("Invalid parameter");
                     throw Error(ErrorType::RUNTIME_ERROR, "Invalid parameter", line_counter);
                 }
                 temp = get_token(code, index);
@@ -304,7 +301,6 @@ try{
 
     if(expr == nullptr){
         // Error
-        // throw std::runtime_error("Invalid expression");
         throw Error(ErrorType::SYNTAX_ERROR, "Invalid expression", line_counter);
     }
 
@@ -338,7 +334,6 @@ try{
         ) {
             if(ast_stack.size() < 2){
                 // Error
-                // throw std::runtime_error("Not enough operands for operator");
                 throw Error(ErrorType::SYNTAX_ERROR, "Not enough operands for operator", line_counter);
             }
             AST_expression* right = ast_stack.top(); ast_stack.pop();
@@ -348,7 +343,6 @@ try{
             if (t.lexeme == "=") {
                 if (!is_assignable(left)) {
                     // Error
-                    // throw std::runtime_error("Left-hand side of assignment is not assignable");
                     throw Error(ErrorType::SYNTAX_ERROR, "Left-hand side of assignment is not assignable", line_counter);
                 }
             }
@@ -358,7 +352,6 @@ try{
         }else if (t.token == Token::UNARY_OPERATOR) { 
             if (ast_stack.empty()) {
                 // Error
-                // throw std::runtime_error("No operand for unary operator");
                 throw Error(ErrorType::SYNTAX_ERROR, "No operand for unary operator", line_counter);
             }
 
@@ -395,7 +388,6 @@ try{
                     t = operand_queue.front();
                     operand_queue.pop();
                     if(t.token != Token::OPEN_PAREN){
-                        // throw std::runtime_error("Function call missing open paren");
                         throw Error(ErrorType::SYNTAX_ERROR, "Function call missing open paren", line_counter);
                     }
                     
@@ -419,7 +411,6 @@ try{
                             // Do nothing
                         }else{
                             // Error
-                            // throw std::runtime_error("Invalid parameter");
                             throw Error(ErrorType::SYNTAX_ERROR, "Invalid parameter", line_counter);
                         }
                         t = operand_queue.front();
@@ -431,7 +422,6 @@ try{
                     break;
                 default:
                     // Error
-                    // throw std::runtime_error("Unknown token type");
                     throw Error(ErrorType::SYNTAX_ERROR, "Unknown token type", line_counter);
             }
         }
@@ -459,7 +449,6 @@ try{
 
     if(t.token != Token::OPEN_BRACE){
         // Error
-        // throw std::runtime_error("Block missing open brace");
         throw Error(ErrorType::SYNTAX_ERROR, "Block missing open brace", line_counter);
     }
 
@@ -475,7 +464,6 @@ try{
             index += 1;
         }else if(td.token == Token::END_OF_FILE || code.size() <= index){
             // Error
-            // throw std::runtime_error("Block missing close brace");
             throw Error(ErrorType::SYNTAX_ERROR, "Block missing close brace", line_counter);
         }else if(td.token == Token::LET){ // Declaration found
             block->addChild(parse_declaration(code, index));
@@ -519,7 +507,8 @@ AST_expression* parse_function(std::string &code, int& index){
     std::string function_name;
     if(t.token != Token::FUNCTION){
         // Error
-        throw std::runtime_error("Function missing keyword fn");
+        throw Error(ErrorType::SYNTAX_ERROR, "Function missing keyword fn", line_counter);
+
     }
 
     if(t.token == Token::NEW_LINE){
@@ -531,7 +520,7 @@ AST_expression* parse_function(std::string &code, int& index){
     AST_function* function;
     if(t.token != Token::CALL){
         // Error
-        throw std::runtime_error("Function missing name");
+        throw Error(ErrorType::SYNTAX_ERROR, "Function missing name", line_counter);
     }else{
         function = new AST_function(t.lexeme);
         function_name = t.lexeme;
@@ -540,7 +529,7 @@ AST_expression* parse_function(std::string &code, int& index){
     t = get_token(code, index);
     if(t.token != Token::OPEN_PAREN){
         // Error
-        throw std::runtime_error("Function missing open paren");
+        throw Error(ErrorType::SYNTAX_ERROR, "Function missing open parenthesis", line_counter);
     }
 
     SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
@@ -593,7 +582,7 @@ AST_expression* parse_function(std::string &code, int& index){
                     data.size = 8;
                 }else{
                     // Error
-                    throw std::runtime_error("Invalid parameter type");
+                    throw Error(ErrorType::TYPE_ERROR, "Invalid parameter type", line_counter);
                 }
                 index = copy_index;
             }
@@ -605,7 +594,7 @@ AST_expression* parse_function(std::string &code, int& index){
             break;
         }else{
             // Error
-            throw std::runtime_error("Invalid parameter");
+            throw Error(ErrorType::TYPE_ERROR, "Invalid parameter", line_counter);
         }
     }
 
@@ -630,7 +619,7 @@ AST_expression* parse_function(std::string &code, int& index){
             function_data.type = data_type::STRING;
         }else{
             // Error
-            throw std::runtime_error("Invalid return type");
+            throw Error(ErrorType::TYPE_ERROR, "Invalid return type", line_counter);
         }
 
         index = copy_index;
@@ -655,7 +644,7 @@ AST_expression* parse_conditional(std::string &code, int& index){
             t = get_token(code, index);
             if(t.token != Token::OPEN_PAREN){
                 // Error
-                throw std::runtime_error("Conditional missing open paren");
+                throw Error(ErrorType::SYNTAX_ERROR, "Conditional missing open parenthesis", line_counter);
             }
             AST_expression* condition = parse_expression(code, index, true);
             AST_block* body = dynamic_cast<AST_block*>(parse_block(code, index, false));
@@ -692,13 +681,13 @@ AST_expression* parse_loop(std::string& code, int& index){
     t = get_token(code, index);
     if(t.token != Token::WHILE){
         // Error
-        throw std::runtime_error("Expected keyword WHILE in a loop");
+        throw Error(ErrorType::SYNTAX_ERROR, "Expected keyword WHILE in a loop", line_counter);
     }
 
     t = get_token(code, index);
     if(t.token != Token::OPEN_PAREN){
         // Error
-        throw std::runtime_error("Condition missing open paren");
+        throw Error(ErrorType::SYNTAX_ERROR, "Condition missing open parenthesis", line_counter);
     }
 
     loop->condition  = parse_expression(code, index, true);
@@ -715,7 +704,7 @@ AST_expression* parse_return(std::string& code, int& index){
     t = get_token(code, index);
     if(t.token != Token::RETURN){
         // Error
-        throw std::runtime_error("Expected keyword RETURN");
+        throw Error(ErrorType::SYNTAX_ERROR, "Expected keyword RETURN", line_counter);
     }
 
     expr = parse_expression(code, index, false);
