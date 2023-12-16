@@ -7,6 +7,7 @@
 #include <map>
 
 #include "error.hpp"
+#include "line_count.hpp"
 
 // DATA TYPES
 enum class data_type
@@ -186,8 +187,8 @@ public:
                 }
             }
             // ERROR
-            // int line_counter =
-            throw Error(ErrorType::SEMANTIC_ERROR, "Variable not found: " + name, 0);
+            // throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") not found", line_counter);
+            throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") not found", 0);
             // throw std::runtime_error("Variable not found 1: " + name);
         }
         catch (Error &e)

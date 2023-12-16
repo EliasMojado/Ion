@@ -59,7 +59,7 @@ AST_expression *parse_return(std::string &, int &);
 //  - this parses the entire program
 // extern int line_counter;
 int line_counter = 0; // for error handling, detects line before the error
-int temp_counter = line_counter;
+
 AST_program *parse_program(std::string &code)
 {
     AST_program *program = new AST_program();
