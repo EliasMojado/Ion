@@ -6,38 +6,49 @@
 #include <list>
 #include <map>
 
+#include "error.hpp"
+
 // DATA TYPES
-enum class data_type{
-    INTEGER, CHAR, STRING, FLOAT, BOOLEAN, UNKNOWN
+enum class data_type
+{
+    INTEGER,
+    CHAR,
+    STRING,
+    FLOAT,
+    BOOLEAN,
+    UNKNOWN
 };
 
-std::ostream& operator<<(std::ostream& os, data_type type) {
-    switch (type) {
-        case data_type::INTEGER:
-            os << "data_type INTEGER";
-            break;
-        case data_type::CHAR:
-            os << "data_type CHAR";
-            break;
-        case data_type::STRING:
-            os << "data_type STRING";
-            break;
-        case data_type::BOOLEAN:
-            os << "data_type BOOLEAN";
-            break;
-        case data_type::FLOAT:
-            os << "data_type FLOAT";
-            break;
-        case data_type::UNKNOWN:
-            os << "data_type UNKNOWN";
-            break;
+std::ostream &operator<<(std::ostream &os, data_type type)
+{
+    switch (type)
+    {
+    case data_type::INTEGER:
+        os << "data_type INTEGER";
+        break;
+    case data_type::CHAR:
+        os << "data_type CHAR";
+        break;
+    case data_type::STRING:
+        os << "data_type STRING";
+        break;
+    case data_type::BOOLEAN:
+        os << "data_type BOOLEAN";
+        break;
+    case data_type::FLOAT:
+        os << "data_type FLOAT";
+        break;
+    case data_type::UNKNOWN:
+        os << "data_type UNKNOWN";
+        break;
     }
     return os;
 }
 
 // METADATA
 // This is a struct that stores the metadata of each variable
-struct metadata{
+struct metadata
+{
     data_type type;
     bool is_function;
     int size;
@@ -47,51 +58,66 @@ struct metadata{
 
 // SCOPE
 // This is a tree structure that stores the scope of each variable  (e.g. global, function, block)
-class Table{
+class Table
+{
 public:
     int scope_size;
-    std::unordered_map <std::string, metadata> symbol_table;
-    Table* parent;
-    std::list <Table*> children;
+    std::unordered_map<std::string, metadata> symbol_table;
+    Table *parent;
+    std::list<Table *> children;
 
     // Iterator to keep track of the current child
-    std::list<Table*>::iterator currentChild;
+    std::list<Table *>::iterator currentChild;
 
-    Table(Table* parent = nullptr){
+    Table(Table *parent = nullptr)
+    {
         this->scope_size = 0;
         this->parent = parent;
         this->currentChild = children.end();
     }
 
     // Method to add a new scope
-    Table* scopeIn() {
-        Table* newScope = new Table(this);
+    Table *scopeIn()
+    {
+        Table *newScope = new Table(this);
         children.push_back(newScope);
         return newScope;
     }
 
     // Method to move to the outer scope
-    Table* scopeOut() {
-        if (parent != nullptr) {
+    Table *scopeOut()
+    {
+        if (parent != nullptr)
+        {
             return parent;
-        } else {
+        }
+        else
+        {
             // Already at the global scope or no parent scope exists.
             throw std::runtime_error("No outer scope to move to.");
         }
     }
 
     // Method to traverse in
-    Table* traverseIN(){
-       if (currentChild == children.end()) {
-            if (!children.empty()) {
-                currentChild = children.begin();  // Start with the first child
-            } else {
+    Table *traverseIN()
+    {
+        if (currentChild == children.end())
+        {
+            if (!children.empty())
+            {
+                currentChild = children.begin(); // Start with the first child
+            }
+            else
+            {
                 throw std::runtime_error("No child scope to traverse into.");
             }
-        } else {
+        }
+        else
+        {
             // Move to the next child
             ++currentChild;
-            if (currentChild == children.end()) {
+            if (currentChild == children.end())
+            {
                 throw std::runtime_error("No more child scopes to traverse into.");
             }
         }
@@ -99,20 +125,27 @@ public:
     }
 
     // Method to traverse out
-    Table* traverseOUT(){
-        if (parent != nullptr) {
+    Table *traverseOUT()
+    {
+        if (parent != nullptr)
+        {
             // Reset the current child iterator
             currentChild = children.end();
             return parent;
-        } else {
+        }
+        else
+        {
             throw std::runtime_error("No parent scope to move back to.");
         }
     }
 
     // Helper method to check if a variable exists in any parent scope
-    bool isVariableExists(const std::string& name) {
-        for (Table* current = this; current != nullptr; current = current->parent) {
-            if (current->symbol_table.find(name) != current->symbol_table.end()) {
+    bool isVariableExists(const std::string &name)
+    {
+        for (Table *current = this; current != nullptr; current = current->parent)
+        {
+            if (current->symbol_table.find(name) != current->symbol_table.end())
+            {
                 return true;
             }
         }
@@ -120,8 +153,10 @@ public:
     }
 
     // Method to add a variable
-    void addSymbol(const std::string& name, metadata& data) {
-        if (!isVariableExists(name)) {
+    void addSymbol(const std::string &name, metadata &data)
+    {
+        if (!isVariableExists(name))
+        {
             // if(data.type == data_type::UNKNOWN){
             //     data.address = -1;
             //     symbol_table[name] = data;
@@ -130,27 +165,46 @@ public:
             scope_size += data.size;
             symbol_table[name] = data;
             // }
-        } else {
+        }
+        else
+        {
             throw std::runtime_error("Variable already exists: " + name);
         }
     }
 
     // Method to get a variable
-    metadata& getVariable(const std::string& name) {
-        for (Table* current = this; current != nullptr; current = current->parent) {
-            auto it = current->symbol_table.find(name);
-            if (it != current->symbol_table.end()) {
-                return it->second;
+    metadata &getVariable(const std::string &name)
+    {
+        try
+        {
+            for (Table *current = this; current != nullptr; current = current->parent)
+            {
+                auto it = current->symbol_table.find(name);
+                if (it != current->symbol_table.end())
+                {
+                    return it->second;
+                }
             }
+            // ERROR
+            // int line_counter =
+            throw Error(ErrorType::SEMANTIC_ERROR, "Variable not found: " + name, 0);
+            // throw std::runtime_error("Variable not found 1: " + name);
         }
-        throw std::runtime_error("Variable not found: " + name);
+        catch (Error &e)
+        {
+            std::cerr << e.getMessage() << std::endl;
+            exit(1);
+        }
     }
 
     // Method to set the relative address of a variable
-    void set_relativeAddress(std::string name, int relativeAddress) {
-        for (Table* current = this; current != nullptr; current = current->parent) {
+    void set_relativeAddress(std::string name, int relativeAddress)
+    {
+        for (Table *current = this; current != nullptr; current = current->parent)
+        {
             auto it = current->symbol_table.find(name);
-            if (it != current->symbol_table.end()) {
+            if (it != current->symbol_table.end())
+            {
                 it->second.relative_address = relativeAddress;
                 return;
             }
@@ -159,10 +213,13 @@ public:
     }
 
     // Method to change the type of a variable
-    void changeType(std::string name, data_type type) {
-        for (Table* current = this; current != nullptr; current = current->parent) {
+    void changeType(std::string name, data_type type)
+    {
+        for (Table *current = this; current != nullptr; current = current->parent)
+        {
             auto it = current->symbol_table.find(name);
-            if (it != current->symbol_table.end()) {
+            if (it != current->symbol_table.end())
+            {
                 it->second.type = type;
                 return;
             }
@@ -171,27 +228,30 @@ public:
     }
 
     // Debugging purposes only
-    void printSymbolTable(int indent = 0) const {
-        if(indent == 0) std::cout << "Symbol Table:" << std::endl;
-        std::string indentStr(indent, ' ');  // Create an indentation string
+    void printSymbolTable(int indent = 0) const
+    {
+        if (indent == 0)
+            std::cout << "Symbol Table:" << std::endl;
+        std::string indentStr(indent, ' '); // Create an indentation string
 
         std::cout << indentStr << "Scope Size: " << scope_size << std::endl;
 
-        for (const auto& pair : symbol_table) {
-            std::cout << indentStr << pair.first << ": Type=" << static_cast<int>(pair.second.type) 
-                    << ", Size=" << pair.second.size << ", Address=" << pair.second.address << std::endl;
+        for (const auto &pair : symbol_table)
+        {
+            std::cout << indentStr << pair.first << ": Type=" << static_cast<int>(pair.second.type)
+                      << ", Size=" << pair.second.size << ", Address=" << pair.second.address << std::endl;
         }
 
-        for (Table* child : children) {
-            child->printSymbolTable(indent + 4);  // Increase indent for nested scopes
+        for (Table *child : children)
+        {
+            child->printSymbolTable(indent + 4); // Increase indent for nested scopes
             std::cout << std::endl;
         }
     }
-    
 };
 
 // GLOBAL SYMBOL TABLE
-Table* SYMBOL_TABLE = new Table(nullptr);
+Table *SYMBOL_TABLE = new Table(nullptr);
 
 // Map to hold string literals and their corresponding labels
 std::map<std::string, std::string> stringLiterals;
