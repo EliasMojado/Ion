@@ -7,7 +7,6 @@
 #include <map>
 
 #include "error.hpp"
-#include "line_count.hpp"
 
 // DATA TYPES
 enum class data_type
