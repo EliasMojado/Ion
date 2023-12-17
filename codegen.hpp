@@ -99,15 +99,6 @@ void generate_code(AST_program *program, std::string programName){
 
     for(auto child: program->expressions){
         codeGenResult res = child->generate_code();
-        // if(child->type == AST_type::BOOLEAN ||
-        //    child->type == AST_type::INTEGER ||
-        //    child->type == AST_type::CHAR ||
-        //    child->type == AST_type::STRING ||
-        //    child->type == AST_type::FLOAT ||
-        //    child->type == AST_type::FUNCTION_CALL){
-        //         regManager.releaseRegister(res.registerName);
-        //    }
-
         regManager.releaseRegister(res.registerName);
     }
 
