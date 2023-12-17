@@ -26,12 +26,14 @@ class RegisterManager
 {
 private:
     std::set<std::string> freeRegisters;
+    std::set<std::string> freeXMMRegisters;
 
 public:
     RegisterManager()
     {
         // Initialize with all available registers
         freeRegisters = {"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
+        freeXMMRegisters = {"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"};
     }
 
     std::string getFreeRegister()
@@ -45,13 +47,32 @@ public:
         return reg;
     }
 
+    std::string getFreeXMMRegister()
+    {
+        if (freeXMMRegisters.empty())
+        {
+            throw std::runtime_error("No free XMM registers available");
+        }
+        std::string xmmReg = *freeXMMRegisters.begin();
+        freeXMMRegisters.erase(freeXMMRegisters.begin());
+        return xmmReg;
+    }
+
     void releaseRegister(const std::string &reg)
     {
         if (reg.empty())
         {
             return;
         }
-        freeRegisters.insert(reg);
+        // Check if the register is a general-purpose or an XMM register
+        if (reg.find("xmm") == 0) // Check if the register name starts with "xmm"
+        {
+            freeXMMRegisters.insert(reg);
+        }
+        else
+        {
+            freeRegisters.insert(reg);
+        }
     }
 };
 
@@ -317,8 +338,21 @@ codeGenResult AST_boolean::generate_code()
 
 codeGenResult AST_float::generate_code()
 {
+    // codeGenResult res;
+    // throw std::runtime_error("Float not implemented yet");
+    // return res;
+
     codeGenResult res;
-    throw std::runtime_error("Float not implemented yet");
+    
+    // Get a free XMM register for floating point operations
+    std::string xmmReg = regManager.getFreeXMMRegister();
+
+    // Move the immediate float value into the XMM register
+    // We use the 'movss' instruction which moves a scalar single-precision floating point value
+    asmFile << "    movss " << xmmReg << ", dword ptr [rel " << this->value << "]\n";
+
+    res.registerName = xmmReg;
+    res.type = res_type::FLOAT;
     return res;
 }
 
@@ -352,16 +386,27 @@ codeGenResult AST_string::generate_code()
 codeGenResult AST_variable::generate_code()
 {
     metadata data = SYMBOL_TABLE->getVariable(this->name);
-    std::string reg = regManager.getFreeRegister();
+    std::string reg;
+    if(data.type == data_type::FLOAT){
+        reg = regManager.getFreeXMMRegister();
+    }else{
+        reg = regManager.getFreeRegister();
+    }
+
     int trueAddress;
     if (data.relative_address == -1)
     { // Declaration
         trueAddress = GLOBAL_ADDRESS - (data.address + data.size);
         SYMBOL_TABLE->set_relativeAddress(this->name, trueAddress);
 
-        // Calculate the variable's address and load its value into the register
-        asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]"
+        if(data.type == data_type::FLOAT){
+            asmFile << "    movss " << reg << ", dword ptr [rbp - " << trueAddress << "]"
+            << "; Declare variable: " << this->name << std::endl;
+        }else{
+            // Calculate the variable's address and load its value into the register
+             asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]"
                 << "; Declare variable: " << this->name << std::endl;
+        }
     }
     else
     {
@@ -494,11 +539,11 @@ codeGenResult AST_binary::generate_code()
             }
 
             // Ensure LHS and RHS are the same type
-            if ((lhsReg.type == res_type::VAR_INTEGER && (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)) ||
+            if ((lhsReg.type == res_type::VAR_INTEGER && (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER || rhsReg.type == res_type::FLOAT || rhsReg.type == res_type ::VAR_FLOAT)) ||
                 (lhsReg.type == res_type::VAR_BOOLEAN && (rhsReg.type == res_type::BOOLEAN || rhsReg.type == res_type::VAR_BOOLEAN)) ||
                 (lhsReg.type == res_type::VAR_CHAR && (rhsReg.type == res_type::CHAR || rhsReg.type == res_type::VAR_CHAR)) ||
                 (lhsReg.type == res_type::VAR_STRING && (rhsReg.type == res_type::STRING || rhsReg.type == res_type::VAR_STRING)) ||
-                (lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::FLOAT || rhsReg.type == res_type::VAR_FLOAT)))
+                (lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::FLOAT || rhsReg.type == res_type::VAR_FLOAT || rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)))
             {
                 // Do nothing
             }
@@ -534,11 +579,17 @@ codeGenResult AST_binary::generate_code()
                 // throw std::runtime_error("Unsupported operation = on non-matching types");
             }
 
-            // Store the RHS value into the LHS variable's location
-            asmFile << "    mov " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
+            if(lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::VAR_FLOAT || rhsReg.type == res_type::FLOAT)){
+                asmFile << "    movss " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
+            }else if(lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::VAR_INTEGER || rhsReg.type == res_type::INTEGER)){
+                asmFile << "    cvtsi2ss " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
+            }else{
+                asmFile << "    mov " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
+            }
 
             // Store the LHS value into the variable's location
             metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable *>(LHS)->name);
+
             asmFile << "    mov [rbp - " << data.relative_address << "], " << lhsReg.registerName << "; store to lhs" << std::endl;
         }
 
