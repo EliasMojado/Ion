@@ -593,6 +593,156 @@ codeGenResult AST_binary::generate_code()
             metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable *>(LHS)->name);
 
             asmFile << "    mov [rbp - " << data.relative_address << "], " << lhsReg.registerName << "; store to lhs" << std::endl;
+        }else if(op == "=="){
+            // COMPARE : EQUAL
+            if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
+              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    sete al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    sete al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    sete al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_STRING || lhsReg.type == res_type::STRING) &&
+                (rhsReg.type == res_type::VAR_STRING || rhsReg.type == res_type::STRING)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    sete al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else{
+                throw std::runtime_error("Unsupported operation == on non-matching types");
+            }
+        }else if(op == "!="){
+            // COMPARE : NOT EQUAL
+            if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
+              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setne al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setne al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setne al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_STRING || lhsReg.type == res_type::STRING) &&
+                (rhsReg.type == res_type::VAR_STRING || rhsReg.type == res_type::STRING)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setne al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else{
+                throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }else if(op == "<"){
+            // COMPARE : LESS THAN
+            if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
+              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setl al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setl al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setl al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else{
+                throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }else if(op == "<="){
+            // COMPARE : LESS THAN OR EQUAL
+            if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
+              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setle al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setle al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setle al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else{
+                throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }else if(op == ">"){
+            // COMPARE : GREATER THAN
+            if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
+              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setg al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setg al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setg al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else{
+                throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }else if(op == ">="){
+            // COMPARE : GREATER THAN OR EQUAL
+            if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
+              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setge al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setge al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
+            ){
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setge al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }else{
+                throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
         }
 
         // Release the RHS register as it's no longer needed
@@ -648,14 +798,13 @@ codeGenResult AST_conditional::generate_code()
 {
     codeGenResult res;
 
-    for (const auto &branch : branches)
-    {
+    for (const auto &branch : branches){
         // Generate code for the condition
         codeGenResult conditionResult = branch.condition->generate_code();
 
-    if (conditionResult.type == res_type::VAR_BOOLEAN)
-    {
-        // Load the value of the boolean variable into a different register
+        // if (conditionResult.type == res_type::VAR_BOOLEAN)
+        // {
+            // Load the value of the boolean variable into a different register
         std::string destRegister = regManager.getFreeRegister(); // Get a new register
         asmFile << "    mov " << destRegister << ", " << conditionResult.registerName << "\n";
         
@@ -664,28 +813,25 @@ codeGenResult AST_conditional::generate_code()
         
         // Update the conditionResult.registerName to the new register
         conditionResult.registerName = destRegister;
-    }
-        else if (conditionResult.type != res_type::BOOLEAN)
-        {
-            // ERROR
-            throw Error(ErrorType::TYPE_ERROR, "Condition in if statement must be boolean", line_counter);
-        }
+        // }
+        // else if (conditionResult.type != res_type::BOOLEAN)
+        // {
+        //     // ERROR
+        //     throw Error(ErrorType::TYPE_ERROR, "Condition in if statement must be boolean", line_counter);
+        // }
 
         // Generate a unique label for the true branch
         std::string trueLabel = "L" + std::to_string(get_unique_label());
+         // Generate a unique label for the end of the conditional
+        std::string endLabel = "L" + std::to_string(get_unique_label());
+
 
         // Generate code for jumping to the true branch if the condition is true
-        asmFile << "    cmp " << conditionResult.registerName << ", 1\n";
-        asmFile << "    je " << trueLabel << "\n";
+        asmFile << "    cmp " << conditionResult.registerName << ", 0\n";
+        asmFile << "    je " << endLabel << "\n";
 
         // Release the register used for the condition
         regManager.releaseRegister(conditionResult.registerName);
-
-        // Generate a unique label for the end of the conditional
-        std::string endLabel = "L" + std::to_string(get_unique_label());
-
-        // Jump to the end of the conditional
-        asmFile << "    jmp " << endLabel << "\n";
 
         // Generate code for the true branch
         asmFile << trueLabel << ":\n";
@@ -699,8 +845,6 @@ codeGenResult AST_conditional::generate_code()
 }
 
 
-
-
 codeGenResult AST_loop::generate_code()
 {
     codeGenResult res;
@@ -708,28 +852,28 @@ codeGenResult AST_loop::generate_code()
     // Generate a unique label for the loop start
     std::string loopStartLabel = "L" + std::to_string(get_unique_label());
 
+    // Generate a unique label for the end of the loop
+    std::string loopEndLabel = "L" + std::to_string(get_unique_label());
+
     // Label for the start of the loop
     asmFile << loopStartLabel << ":\n";
-
-    // Generate code for the loop body
-    body->generate_code();
 
     // Generate code for the loop condition
     codeGenResult conditionResult = condition->generate_code();
 
-    // Check if the loop condition is true
-    asmFile << "    cmp " << conditionResult.registerName << ", 1\n";
-    
-    // Generate a unique label for the end of the loop
-    std::string loopEndLabel = "L" + std::to_string(get_unique_label());
+    // Check if the loop condition is 0
+    asmFile << "    cmp " << conditionResult.registerName << ", 0\n";
 
-    // Jump to the end of the loop if the condition is false
-    asmFile << "    jne " << loopEndLabel << "\n";
+    // Jump to the end of the loop if the condition is 0
+    asmFile << "    je " << loopEndLabel << "\n";
 
     // Release the register used for the loop condition
     regManager.releaseRegister(conditionResult.registerName);
 
-    // Jump back to the start of the loop
+    // Generate code for the loop body
+    body->generate_code();
+
+    // Jump back to the start of the loop if the condition is not 0
     asmFile << "    jmp " << loopStartLabel << "\n";
 
     // Generate the label for the end of the loop
