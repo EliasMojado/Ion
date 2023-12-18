@@ -76,6 +76,12 @@ public:
     }
 };
 
+// This function generates a unique label based on a counter
+int get_unique_label() {
+    static int labelCounter = 0;
+    return labelCounter++;
+}
+
 // Global variables declaration
 std::ofstream asmFile;
 RegisterManager regManager;
@@ -743,6 +749,50 @@ codeGenResult AST_binary::generate_code()
             }else{
                 throw std::runtime_error("Unsupported operation != on non-matching types");
             }
+        }else if(op == "&&"){
+            // COMPARE : AND
+            std::string uniqueLabel = std::to_string(get_unique_label());
+
+            // Evaluate the first operand (LHS)
+            asmFile << "    test " << lhsReg.registerName << ", " << lhsReg.registerName << "\n";
+            asmFile << "    jz .Lfalse_" << uniqueLabel << "\n";
+
+            // Evaluate the second operand (RHS)
+            asmFile << "    test " << rhsReg.registerName << ", " << rhsReg.registerName << "\n";
+            asmFile << "    jz .Lfalse_" << uniqueLabel << "\n";
+
+            // Both operands are true, set result to true
+            asmFile << "    mov " << lhsReg.registerName << ", 1\n";
+            asmFile << "    jmp .Lend_" << uniqueLabel << "\n";
+
+            // False label
+            asmFile << ".Lfalse_" << uniqueLabel << ":\n";
+            asmFile << "    mov " << lhsReg.registerName << ", 0\n";
+
+            // End label
+            asmFile << ".Lend_" << uniqueLabel << ":\n";
+        }else if(op == "||"){
+            // COMPARE : OR
+            std::string uniqueLabel = std::to_string(get_unique_label());
+
+            // Evaluate the first operand (LHS)
+            asmFile << "    test " << lhsReg.registerName << ", " << lhsReg.registerName << "\n";
+            asmFile << "    jnz .Ltrue_" << uniqueLabel << "\n";
+
+            // Evaluate the second operand (RHS)
+            asmFile << "    test " << rhsReg.registerName << ", " << rhsReg.registerName << "\n";
+            asmFile << "    jnz .Ltrue_" << uniqueLabel << "\n";
+
+            // Both operands are false, set result to false
+            asmFile << "    mov " << lhsReg.registerName << ", 0\n";
+            asmFile << "    jmp .Lend_" << uniqueLabel << "\n";
+
+            // True label
+            asmFile << ".Ltrue_" << uniqueLabel << ":\n";
+            asmFile << "    mov " << lhsReg.registerName << ", 1\n";
+
+            // End label
+            asmFile << ".Lend_" << uniqueLabel << ":\n";
         }
 
         // Release the RHS register as it's no longer needed
@@ -786,12 +836,6 @@ codeGenResult AST_block::generate_code()
     codeGenResult res;
     res.type = res_type::VOID;
     return res;
-}
-
-// This function generates a unique label based on a counter
-int get_unique_label() {
-    static int labelCounter = 0;
-    return labelCounter++;
 }
 
 codeGenResult AST_conditional::generate_code()
