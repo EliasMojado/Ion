@@ -611,7 +611,9 @@ codeGenResult AST_binary::generate_code()
 
 codeGenResult AST_block::generate_code()
 {
-    SYMBOL_TABLE = SYMBOL_TABLE->traverseIN();
+    SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
+    //SYMBOL_TABLE = SYMBOL_TABLE->traverseIN();
+    //SYMBOL_TABLE->scopeIn();
 
     // ALLOCATE STACK SPACE FOR BLOCK
     int alignedScopeSize = (SYMBOL_TABLE->scope_size + 15) & ~15;
@@ -627,24 +629,112 @@ codeGenResult AST_block::generate_code()
     asmFile << "    add rsp, " << alignedScopeSize << "  ; Deallocate stack space for block\n";
     GLOBAL_ADDRESS -= alignedScopeSize;
 
-    SYMBOL_TABLE = SYMBOL_TABLE->traverseOUT();
+    //SYMBOL_TABLE->scopeOut();
+    //SYMBOL_TABLE = SYMBOL_TABLE->traverseOUT();
+    SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
 
     codeGenResult res;
     res.type = res_type::VOID;
     return res;
 }
 
+// This function generates a unique label based on a counter
+int get_unique_label() {
+    static int labelCounter = 0;
+    return labelCounter++;
+}
+
 codeGenResult AST_conditional::generate_code()
 {
     codeGenResult res;
-    throw std::runtime_error("Conditional not implemented yet");
+
+    for (const auto &branch : branches)
+    {
+        // Generate code for the condition
+        codeGenResult conditionResult = branch.condition->generate_code();
+
+    if (conditionResult.type == res_type::VAR_BOOLEAN)
+    {
+        // Load the value of the boolean variable into a different register
+        std::string destRegister = regManager.getFreeRegister(); // Get a new register
+        asmFile << "    mov " << destRegister << ", " << conditionResult.registerName << "\n";
+        
+        // Now, conditionResult.registerName can be released, as we have the value in a different register
+        regManager.releaseRegister(conditionResult.registerName);
+        
+        // Update the conditionResult.registerName to the new register
+        conditionResult.registerName = destRegister;
+    }
+        else if (conditionResult.type != res_type::BOOLEAN)
+        {
+            // ERROR
+            throw Error(ErrorType::TYPE_ERROR, "Condition in if statement must be boolean", line_counter);
+        }
+
+        // Generate a unique label for the true branch
+        std::string trueLabel = "L" + std::to_string(get_unique_label());
+
+        // Generate code for jumping to the true branch if the condition is true
+        asmFile << "    cmp " << conditionResult.registerName << ", 1\n";
+        asmFile << "    je " << trueLabel << "\n";
+
+        // Release the register used for the condition
+        regManager.releaseRegister(conditionResult.registerName);
+
+        // Generate a unique label for the end of the conditional
+        std::string endLabel = "L" + std::to_string(get_unique_label());
+
+        // Jump to the end of the conditional
+        asmFile << "    jmp " << endLabel << "\n";
+
+        // Generate code for the true branch
+        asmFile << trueLabel << ":\n";
+        branch.body->generate_code();
+
+        // Generate the end label
+        asmFile << endLabel << ":\n";
+    }
+
     return res;
 }
+
+
+
 
 codeGenResult AST_loop::generate_code()
 {
     codeGenResult res;
-    throw std::runtime_error("Loop not implemented yet");
+
+    // Generate a unique label for the loop start
+    std::string loopStartLabel = "L" + std::to_string(get_unique_label());
+
+    // Label for the start of the loop
+    asmFile << loopStartLabel << ":\n";
+
+    // Generate code for the loop body
+    body->generate_code();
+
+    // Generate code for the loop condition
+    codeGenResult conditionResult = condition->generate_code();
+
+    // Check if the loop condition is true
+    asmFile << "    cmp " << conditionResult.registerName << ", 1\n";
+    
+    // Generate a unique label for the end of the loop
+    std::string loopEndLabel = "L" + std::to_string(get_unique_label());
+
+    // Jump to the end of the loop if the condition is false
+    asmFile << "    jne " << loopEndLabel << "\n";
+
+    // Release the register used for the loop condition
+    regManager.releaseRegister(conditionResult.registerName);
+
+    // Jump back to the start of the loop
+    asmFile << "    jmp " << loopStartLabel << "\n";
+
+    // Generate the label for the end of the loop
+    asmFile << loopEndLabel << ":\n";
+
     return res;
 }
 
