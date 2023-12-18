@@ -400,8 +400,10 @@ codeGenResult AST_variable::generate_code()
         SYMBOL_TABLE->set_relativeAddress(this->name, trueAddress);
 
         if(data.type == data_type::FLOAT){
-            asmFile << "    movss " << reg << ", dword ptr [rbp - " << trueAddress << "]"
-            << "; Declare variable: " << this->name << std::endl;
+            std::string reg2 = regManager.getFreeRegister();
+            // Calculate the variable's address and load its value into the register    
+            asmFile << "    mov " << reg2 << ", [rbp - " << trueAddress << "]" << std::endl;
+            asmFile << "    movq " << reg << ", " << reg2 << std::endl;
         }else{
             // Calculate the variable's address and load its value into the register
              asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]"
