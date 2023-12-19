@@ -114,7 +114,7 @@ void generate_code(AST_program *program, std::string programName)
     asmFile << "    intFormat db '%d', 0  ; Format string for integers\n\n";
     asmFile << "    buffer rb 64\n\n";
     asmFile << "    intstore rq 0\n";
-    asmFile << "    newline db " ", 0DH, 0AH, 0\n";
+    asmFile << "    newline db ' ', 0DH, 0AH, 0\n";
     asmFile << "    charstore db ' '\n";
     asmFile << "    boolstore rb 1\n";
     asmFile << "    stringstore db ' ', 0\n\n";
