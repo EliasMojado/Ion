@@ -58,7 +58,7 @@ AST_expression *parse_return(std::string &, int &);
 //  PARSE : Program
 //  - this parses the entire program
 // extern int line_counter;
-int line_counter = 0; // for error handling, detects line before the error
+int line_counter = LineNumber::getInstance().getLine(); // Get current line number
 
 AST_program *parse_program(std::string &code)
 {
@@ -76,7 +76,9 @@ AST_program *parse_program(std::string &code)
             if (td.token == Token::NEW_LINE)
             {
                 // std::cout<<"found new line"<<std::endl;
-                line_counter++;
+                // line_counter++;
+                LineNumber::getInstance().incrementLine();
+
             }
 
             index++;
@@ -84,38 +86,52 @@ AST_program *parse_program(std::string &code)
         }
         if (td.token == Token::LET)
         { // Declaration found
-            line_counter++;
-            program->addExpression(parse_declaration(code, index));
+            // line_counter++;
+            LineNumber::getInstance().incrementLine();
+            // std::cout<<(LineNumber::getInstance().getLine())<<std::endl;
+            program->addExpression(parse_declaration(code, index), LineNumber::getInstance().getLine());
         }
         else if (td.token == Token::FUNCTION)
         { // Function found
-            line_counter++;
-            program->addExpression(parse_function(code, index));
+            // line_counter++;
+            LineNumber::getInstance().incrementLine();
+            // std::cout<<(LineNumber::getInstance().getLine())<<std::endl;
+            program->addExpression(parse_function(code, index), LineNumber::getInstance().getLine());
         }
         else if (td.token == Token::IF)
         { // Conditional found
-            line_counter++;
-            program->addExpression(parse_conditional(code, index));
+            // line_counter++;
+            LineNumber::getInstance().incrementLine();
+            // std::cout<<(LineNumber::getInstance().getLine())<<std::endl;
+            program->addExpression(parse_conditional(code, index), LineNumber::getInstance().getLine());
         }
         else if (td.token == Token::WHILE)
         { // Loop found
-            line_counter++;
-            program->addExpression(parse_loop(code, index));
+            // line_counter++;
+            LineNumber::getInstance().incrementLine();
+            // std::cout<<(LineNumber::getInstance().getLine())<<std::endl;
+            program->addExpression(parse_loop(code, index), LineNumber::getInstance().getLine());
         }
         else if (td.token == Token::OPEN_BRACE)
         {
-            line_counter++;
-            program->addExpression(parse_block(code, index, false)); // block found
+            // line_counter++;
+            LineNumber::getInstance().incrementLine();
+            // std::cout<<(LineNumber::getInstance().getLine())<<std::endl;
+            program->addExpression(parse_block(code, index, false), LineNumber::getInstance().getLine()); // block found
         }
         else if (td.token == Token::RETURN)
         {
-            line_counter++;
-            program->addExpression(parse_return(code, index)); // return found
+            // line_counter++;
+            LineNumber::getInstance().incrementLine();
+            // std::cout<<(LineNumber::getInstance().getLine())<<std::endl;
+            program->addExpression(parse_return(code, index), LineNumber::getInstance().getLine()); // return found
         }
         else
         {
-            line_counter++;
-            program->addExpression(parse_expression(code, index, false));
+            // line_counter++;
+            LineNumber::getInstance().incrementLine();
+            // std::cout<<(LineNumber::getInstance().getLine())<<std::endl;
+            program->addExpression(parse_expression(code, index, false), LineNumber::getInstance().getLine());
         }
     }
     return program;

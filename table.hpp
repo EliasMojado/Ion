@@ -168,7 +168,9 @@ public:
         }
         else
         {
-            throw std::runtime_error("Variable already exists: " + name);
+            int line = LineNumber::getInstance().getLine();
+            throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") already exists" , line);
+            // throw std::runtime_error("Variable already exists: " + name);
         }
     }
 

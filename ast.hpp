@@ -7,6 +7,31 @@
 #include <stack>
 #include <queue>
 
+
+class LineNumber {
+public:
+    static LineNumber& getInstance() {
+        static LineNumber instance;
+        return instance;
+    }
+
+    int getLine() const {
+        return line;
+    }
+
+    void incrementLine() {
+        line++;
+    }
+
+private:
+    int line = 0; 
+
+    LineNumber() {}
+
+    LineNumber(LineNumber const&) = delete;
+    void operator=(LineNumber const&) = delete;
+};
+
 //-----------------------------------------------------------------------------------------------------------------------------
 // SECTION : ABSTRACT SYNTAX TREE                                                              
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -481,7 +506,7 @@ class AST_program {
 public:
     std::list <AST_expression*> expressions;
     AST_program(){}
-    void addExpression (AST_expression* expr){
+    void addExpression (AST_expression* expr, int line){
         this->expressions.push_back(expr);
     }
 

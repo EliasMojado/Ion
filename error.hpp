@@ -5,8 +5,8 @@
 #include <string>
 #include <list>
 
-#include "parser.hpp"
-#include "table.hpp"
+// #include "parser.hpp"
+// #include "table.hpp"
 
 enum class ErrorType;
 std::string ErrorTypeToString(ErrorType type);
@@ -26,7 +26,7 @@ class Error
 {
 public:
     Error(ErrorType type, const std::string &message, int line)
-        : type_(type), message_("\n\t======== ERROR FOUND ========\n" + ErrorTypeToString(type) + " on or after line " + std::to_string(line) + ": " + message + "\n"), hasError_(true) {}
+        : type_(type), message_("\n\t###### ERROR FOUND ######\n" + ErrorTypeToString(type) + " on or after line " + std::to_string(line) + ": " + message + "\n"), hasError_(true) {}
     Error() : type_(ErrorType::SYNTAX_ERROR), hasError_(false) {}
 
     std::string getMessage() const
