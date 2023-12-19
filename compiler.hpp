@@ -17,9 +17,9 @@
 void compile(char *programName,std::string code){
 
     AST_program *program = parse_program(code);
-    program->print();
-    std::cout << std::endl;
-    SYMBOL_TABLE->printSymbolTable();
+    // program->print();
+    // std::cout << std::endl;
+    // SYMBOL_TABLE->printSymbolTable();
 
     //remove the .ion in the program name
     std::string programNameString(programName);

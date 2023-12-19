@@ -114,6 +114,7 @@ void generate_code(AST_program *program, std::string programName)
     asmFile << "    intFormat db '%d', 0  ; Format string for integers\n\n";
     asmFile << "    buffer rb 64\n\n";
     asmFile << "    intstore rq 0\n";
+    asmFile << "    newline db " ", 0DH, 0AH, 0\n";
     asmFile << "    charstore db ' '\n";
     asmFile << "    boolstore rb 1\n";
     asmFile << "    stringstore db ' ', 0\n\n";
@@ -220,6 +221,8 @@ codeGenResult CALL_write(AST_function_call *call)
                 break;
             case res_type::VAR_STRING:
                 asmFile << "    cinvoke printf, " << varResult.registerName << std::endl; // Print the formatted string
+                break;
+            case res_type::VOID:
                 break;
             default:
                 // ERROR
@@ -394,7 +397,14 @@ codeGenResult AST_string::generate_code()
 }
 
 codeGenResult AST_variable::generate_code()
-{
+{   
+    if(this->name == "newline"){
+        asmFile << "    cinvoke printf, newline" << std::endl;
+        codeGenResult res;
+        res.type = res_type::VOID;
+        return res;
+    }
+    
     metadata data = SYMBOL_TABLE->getVariable(this->name, line);
     std::string reg;
     if (data.type == data_type::FLOAT)
