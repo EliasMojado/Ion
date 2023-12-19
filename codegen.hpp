@@ -220,7 +220,7 @@ codeGenResult CALL_write(AST_function_call *call)
                 break;
             default:
                 // ERROR
-                throw Error(ErrorType::TYPE_ERROR, "Unsupported variable type for write function", line_counter);
+                throw Error(ErrorType::TYPE_ERROR, "Unsupported variable type for write function", call->line);
                 // throw std::runtime_error("Unsupported variable type for write function");
             }
 
@@ -230,7 +230,7 @@ codeGenResult CALL_write(AST_function_call *call)
         else
         {
             // ERROR
-            throw Error(ErrorType::TYPE_ERROR, "Unsupported variable type for write function", line_counter);
+            throw Error(ErrorType::TYPE_ERROR, "Unsupported variable type for write function", call->line);
             // throw std::runtime_error("Unsupported parameter type for write function");
         }
     }
@@ -281,7 +281,7 @@ codeGenResult CALL_read(AST_function_call *call)
 
                 case data_type::UNKNOWN:
                     // ERROR
-                    throw Error(ErrorType::TYPE_ERROR, "Cannot read into a variable of unknown type", line_counter);
+                    throw Error(ErrorType::TYPE_ERROR, "Cannot read into a variable of unknown type", call->line);
                     // throw std::runtime_error("Cannot read into a variable of unknown type");
 
                     // Add cases for other variable types as needed
@@ -298,7 +298,7 @@ codeGenResult CALL_read(AST_function_call *call)
             else
             {
                 // ERROR
-                throw Error(ErrorType::TYPE_ERROR, "Unsupported parameter type for read function", line_counter);
+                throw Error(ErrorType::TYPE_ERROR, "Unsupported parameter type for read function", call->line);
                 // throw std::runtime_error("Unsupported parameter type for read function");
             }
         }
