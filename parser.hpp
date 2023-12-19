@@ -545,8 +545,9 @@ AST_expression *parse_block(std::string &code, int &index, bool is_function = fa
 
         if (t.token != Token::OPEN_BRACE)
         {
+            // std::cout << t.token << std::endl;
             // Error
-            throw Error(ErrorType::SYNTAX_ERROR, "Block missing open brace", line);
+            // throw Error(ErrorType::SYNTAX_ERROR, "Block missing open brace", line);
         }
 
         if (!is_function)

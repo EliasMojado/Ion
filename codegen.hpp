@@ -944,49 +944,58 @@ codeGenResult AST_block::generate_code()
 codeGenResult AST_conditional::generate_code()
 {
     codeGenResult res;
+    std::string endTrueLabel = "L" + std::to_string(get_unique_label());
 
     for (const auto &branch : branches)
     {
-        // Generate code for the condition
-        codeGenResult conditionResult = branch.condition->generate_code();
+        if(branch.condition != nullptr){
 
-        // if (conditionResult.type == res_type::VAR_BOOLEAN)
-        // {
-        // Load the value of the boolean variable into a different register
-        std::string destRegister = regManager.getFreeRegister(); // Get a new register
-        asmFile << "    mov " << destRegister << ", " << conditionResult.registerName << "\n";
+            // Generate code for the condition
+            codeGenResult conditionResult = branch.condition->generate_code();
 
-        // Now, conditionResult.registerName can be released, as we have the value in a different register
-        regManager.releaseRegister(conditionResult.registerName);
+            // if (conditionResult.type == res_type::VAR_BOOLEAN)
+            // {
+            // Load the value of the boolean variable into a different register
+            std::string destRegister = regManager.getFreeRegister(); // Get a new register
+            asmFile << "    mov " << destRegister << ", " << conditionResult.registerName << "\n";
 
-        // Update the conditionResult.registerName to the new register
-        conditionResult.registerName = destRegister;
-        // }
-        // else if (conditionResult.type != res_type::BOOLEAN)
-        // {
-        //     // ERROR
-        //     throw Error(ErrorType::TYPE_ERROR, "Condition in if statement must be boolean", line);
-        // }
+            // Now, conditionResult.registerName can be released, as we have the value in a different register
+            regManager.releaseRegister(conditionResult.registerName);
 
-        // Generate a unique label for the true branch
-        std::string trueLabel = "L" + std::to_string(get_unique_label());
-        // Generate a unique label for the end of the conditional
-        std::string endLabel = "L" + std::to_string(get_unique_label());
+            // Update the conditionResult.registerName to the new register
+            conditionResult.registerName = destRegister;
+            // }
+            // else if (conditionResult.type != res_type::BOOLEAN)
+            // {
+            //     // ERROR
+            //     throw Error(ErrorType::TYPE_ERROR, "Condition in if statement must be boolean", line);
+            // }
 
-        // Generate code for jumping to the true branch if the condition is true
-        asmFile << "    cmp " << conditionResult.registerName << ", 0\n";
-        asmFile << "    je " << endLabel << "\n";
+            // Generate a unique label for the true branch
+            std::string trueLabel = "L" + std::to_string(get_unique_label());
+            // Generate a unique label for the end of the conditional
+            std::string endLabel = "L" + std::to_string(get_unique_label());
 
-        // Release the register used for the condition
-        regManager.releaseRegister(conditionResult.registerName);
+            // Generate code for jumping to the true branch if the condition is true
+            asmFile << "    cmp " << conditionResult.registerName << ", 0\n";
+            asmFile << "    je " << endLabel << "\n";
 
-        // Generate code for the true branch
-        asmFile << trueLabel << ":\n";
-        branch.body->generate_code();
+            // Release the register used for the condition
+            regManager.releaseRegister(conditionResult.registerName);
+            
+            // Generate code for the true branch
+            asmFile << trueLabel << ":\n";
+            branch.body->generate_code();
+            asmFile << "    jmp " << endTrueLabel << "\n";
 
-        // Generate the end label
-        asmFile << endLabel << ":\n";
+            // Generate the end label
+            asmFile << endLabel << ":\n";
+        }else{
+            branch.body->generate_code();
+        }
     }
+
+    asmFile << endTrueLabel << ": ;True end\n";
 
     return res;
 }
