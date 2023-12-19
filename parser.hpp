@@ -329,7 +329,7 @@ AST_expression *parse_expression(std::string &code, int &index, bool condition =
                     else
                     {
                         // Error
-                        throw Error(ErrorType::RUNTIME_ERROR, "Invalid parameter", line);
+                        throw Error(ErrorType::SYNTAX_ERROR, "Invalid parameter", line);
                     }
                     temp = get_token(code, index);
                 }
