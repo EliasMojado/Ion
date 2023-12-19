@@ -95,7 +95,6 @@ public:
         {
             // Already at the global scope or no parent scope exists.
             // throw std::runtime_error("No outer scope to move to.");
-            int line = LineNumber::getInstance().getLine();
             throw Error(ErrorType::RUNTIME_ERROR, "No outer scope to move to." , -1);
         }
     }
@@ -111,7 +110,6 @@ public:
             }
             else
             {
-                int line = LineNumber::getInstance().getLine();
                 throw Error(ErrorType::RUNTIME_ERROR, "No child scope to traverse into." , -1);
                 // throw std::runtime_error("No child scope to traverse into.");
             }
@@ -122,7 +120,6 @@ public:
             ++currentChild;
             if (currentChild == children.end())
             {
-                int line = LineNumber::getInstance().getLine();
                 throw Error(ErrorType::RUNTIME_ERROR, "No more child scopes to traverse into." , -1);
                 // throw std::runtime_error("No more child scopes to traverse into.");
             }
@@ -141,7 +138,6 @@ public:
         }
         else
         {
-            int line = LineNumber::getInstance().getLine();
             throw Error(ErrorType::RUNTIME_ERROR, "No parent scope to move back to." , -1);
             // throw std::runtime_error("No parent scope to move back to.");
         }
@@ -216,7 +212,8 @@ public:
                 return;
             }
         }
-        throw std::runtime_error("Variable not found for setting relative address: " + name);
+        throw Error(ErrorType::RUNTIME_ERROR, "Variable not found for setting relative address: "  + name, -1);
+        // throw std::runtime_error("Variable not found for setting relative address: " + name);
     }
 
     // Method to change the type of a variable
@@ -231,7 +228,8 @@ public:
                 return;
             }
         }
-        throw std::runtime_error("Variable not found for changing type: " + name);
+        throw Error(ErrorType::RUNTIME_ERROR, "Variable not found for changing type: " + name, -1);
+        // throw std::runtime_error("Variable not found for changing type: " + name);
     }
 
     // Debugging purposes only
