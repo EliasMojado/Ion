@@ -94,7 +94,9 @@ public:
         else
         {
             // Already at the global scope or no parent scope exists.
-            throw std::runtime_error("No outer scope to move to.");
+            // throw std::runtime_error("No outer scope to move to.");
+            int line = LineNumber::getInstance().getLine();
+            throw Error(ErrorType::RUNTIME_ERROR, "No outer scope to move to." , -1);
         }
     }
 
@@ -109,7 +111,9 @@ public:
             }
             else
             {
-                throw std::runtime_error("No child scope to traverse into.");
+                int line = LineNumber::getInstance().getLine();
+                throw Error(ErrorType::RUNTIME_ERROR, "No child scope to traverse into." , -1);
+                // throw std::runtime_error("No child scope to traverse into.");
             }
         }
         else
@@ -118,7 +122,9 @@ public:
             ++currentChild;
             if (currentChild == children.end())
             {
-                throw std::runtime_error("No more child scopes to traverse into.");
+                int line = LineNumber::getInstance().getLine();
+                throw Error(ErrorType::RUNTIME_ERROR, "No more child scopes to traverse into." , -1);
+                // throw std::runtime_error("No more child scopes to traverse into.");
             }
         }
         return *currentChild;
@@ -135,7 +141,9 @@ public:
         }
         else
         {
-            throw std::runtime_error("No parent scope to move back to.");
+            int line = LineNumber::getInstance().getLine();
+            throw Error(ErrorType::RUNTIME_ERROR, "No parent scope to move back to." , -1);
+            // throw std::runtime_error("No parent scope to move back to.");
         }
     }
 
@@ -170,7 +178,6 @@ public:
         {
             int line = LineNumber::getInstance().getLine();
             throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") already exists" , line);
-            // throw std::runtime_error("Variable already exists: " + name);
         }
     }
 
@@ -187,10 +194,8 @@ public:
                     return it->second;
                 }
             }
-            // ERROR
-            // throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") not found", line_counter);
-            throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") not found", 0);
-            // throw std::runtime_error("Variable not found 1: " + name);
+            int line = LineNumber::getInstance().getLine();
+            throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") not found" , line);
         }
         catch (Error &e)
         {

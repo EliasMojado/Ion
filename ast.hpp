@@ -121,8 +121,12 @@ void print_indent(int indent){
 // BASE CLASS
 class AST_expression{
 public:
+    int line;
     AST_type type;
-    AST_expression(AST_type type) : type(type) {}
+    AST_expression(AST_type type) : type(type) {
+        int line_counter = LineNumber::getInstance().getLine();
+        this->line = line_counter;
+    }
     virtual ~AST_expression() = default;
     virtual void print (int) const = 0;
     virtual codeGenResult generate_code() = 0;

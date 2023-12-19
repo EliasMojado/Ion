@@ -288,7 +288,7 @@ codeGenResult CALL_read(AST_function_call *call)
 
                 default:
                     // ERROR
-                    throw Error(ErrorType::TYPE_ERROR, "Unsupported variable type for read function", line_counter);
+                    throw Error(ErrorType::TYPE_ERROR, "Unsupported variable type for read function", call->line);
                     // throw std::runtime_error("Unsupported variable type for read function");
                 }
 
@@ -606,7 +606,7 @@ codeGenResult AST_binary::generate_code()
             else
             {
                 // ERROR
-                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation = on non-matching types", line_counter);
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation = on non-matching types", line);
                 // throw std::runtime_error("Unsupported operation = on non-matching types");
             }
 
