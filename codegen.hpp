@@ -251,7 +251,7 @@ codeGenResult CALL_read(AST_function_call *call)
                 codeGenResult varResult = param->generate_code();
 
                 // Assuming the variable type is specified by the variable itself
-                data_type expectedType = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable *>(param)->name).type;
+                data_type expectedType = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable *>(param)->name, call->line).type;
 
                 switch (expectedType)
                 {
@@ -391,7 +391,7 @@ codeGenResult AST_string::generate_code()
 
 codeGenResult AST_variable::generate_code()
 {
-    metadata data = SYMBOL_TABLE->getVariable(this->name);
+    metadata data = SYMBOL_TABLE->getVariable(this->name, line);
     std::string reg;
     if(data.type == data_type::FLOAT){
         reg = regManager.getFreeXMMRegister();
@@ -581,7 +581,7 @@ codeGenResult AST_binary::generate_code()
             else if (lhsReg.type == res_type::VAR_UNKNOWN)
             {
                 AST_variable *var = dynamic_cast<AST_variable *>(LHS);
-                metadata data = SYMBOL_TABLE->getVariable(var->name);
+                metadata data = SYMBOL_TABLE->getVariable(var->name, line);
                 if (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER)
                 {
                     SYMBOL_TABLE->changeType(var->name, data_type::INTEGER);
@@ -619,7 +619,7 @@ codeGenResult AST_binary::generate_code()
             }
 
             // Store the LHS value into the variable's location
-            metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable *>(LHS)->name);
+            metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable *>(LHS)->name, line);
 
             asmFile << "    mov [rbp - " << data.relative_address << "], " << lhsReg.registerName << "; store to lhs" << std::endl;
         }else if(op == "=="){

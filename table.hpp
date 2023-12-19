@@ -178,7 +178,7 @@ public:
     }
 
     // Method to get a variable
-    metadata &getVariable(const std::string &name)
+    metadata &getVariable(const std::string &name, int line)
     {
         try
         {
@@ -190,7 +190,7 @@ public:
                     return it->second;
                 }
             }
-            int line = LineNumber::getInstance().getLine();
+            // int line = LineNumber::getInstance().getLine();
             throw Error(ErrorType::SEMANTIC_ERROR, "Variable (" + name + ") not found" , line);
         }
         catch (Error &e)
