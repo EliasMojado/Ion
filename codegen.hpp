@@ -40,7 +40,8 @@ public:
     {
         if (freeRegisters.empty())
         {
-            throw std::runtime_error("No free registers available");
+            throw Error(ErrorType::RUNTIME_ERROR, "No free registers available", -1);
+            // throw std::runtime_error("No free registers available");
         }
         std::string reg = *freeRegisters.begin();
         freeRegisters.erase(freeRegisters.begin());
@@ -51,7 +52,8 @@ public:
     {
         if (freeXMMRegisters.empty())
         {
-            throw std::runtime_error("No free XMM registers available");
+            throw Error(ErrorType::RUNTIME_ERROR, "No free XMM registers available", -1);
+            // throw std::runtime_error("No free XMM registers available");
         }
         std::string xmmReg = *freeXMMRegisters.begin();
         freeXMMRegisters.erase(freeXMMRegisters.begin());
@@ -77,7 +79,8 @@ public:
 };
 
 // This function generates a unique label based on a counter
-int get_unique_label() {
+int get_unique_label()
+{
     static int labelCounter = 0;
     return labelCounter++;
 }
@@ -349,7 +352,7 @@ codeGenResult AST_float::generate_code()
     // return res;
 
     codeGenResult res;
-    
+
     // Get a free XMM register for floating point operations
     std::string xmmReg = regManager.getFreeXMMRegister();
 
@@ -383,7 +386,8 @@ codeGenResult AST_string::generate_code()
     }
     else
     {
-        throw std::runtime_error("String literal not found in stringLiterals map");
+        throw Error(ErrorType::RUNTIME_ERROR, "String literal not found in stringLiterals map", -1);
+        // throw std::runtime_error("String literal not found in stringLiterals map");
     }
 
     return res;
@@ -393,9 +397,12 @@ codeGenResult AST_variable::generate_code()
 {
     metadata data = SYMBOL_TABLE->getVariable(this->name, line);
     std::string reg;
-    if(data.type == data_type::FLOAT){
+    if (data.type == data_type::FLOAT)
+    {
         reg = regManager.getFreeXMMRegister();
-    }else{
+    }
+    else
+    {
         reg = regManager.getFreeRegister();
     }
 
@@ -405,15 +412,18 @@ codeGenResult AST_variable::generate_code()
         trueAddress = GLOBAL_ADDRESS - (data.address + data.size);
         SYMBOL_TABLE->set_relativeAddress(this->name, trueAddress);
 
-        if(data.type == data_type::FLOAT){
+        if (data.type == data_type::FLOAT)
+        {
             std::string reg2 = regManager.getFreeRegister();
-            // Calculate the variable's address and load its value into the register    
+            // Calculate the variable's address and load its value into the register
             asmFile << "    mov " << reg2 << ", [rbp - " << trueAddress << "]" << std::endl;
             asmFile << "    movq " << reg << ", " << reg2 << std::endl;
-        }else{
+        }
+        else
+        {
             // Calculate the variable's address and load its value into the register
-             asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]"
-                << "; Declare variable: " << this->name << std::endl;
+            asmFile << "    mov " << reg << ", [rbp - " << trueAddress << "]"
+                    << "; Declare variable: " << this->name << std::endl;
         }
     }
     else
@@ -480,7 +490,8 @@ codeGenResult AST_unary::generate_code()
     }
     else
     {
-        throw std::runtime_error("Unsupported unary operation: " + op);
+        throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported (" + op + ") unary operation", line);
+        // throw std::runtime_error("Unsupported unary operation: " + op);
     }
 
     return res;
@@ -504,7 +515,8 @@ codeGenResult AST_binary::generate_code()
             }
             else
             {
-                throw std::runtime_error("Unsupported operation + on non-integer types");
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation + on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation + on non-integer types");
             }
         }
         else if (op == "-")
@@ -516,7 +528,8 @@ codeGenResult AST_binary::generate_code()
             }
             else
             {
-                throw std::runtime_error("Unsupported operation - on non-integer types");
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation - on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation - on non-integer types");
             }
         }
         else if (op == "*")
@@ -528,7 +541,8 @@ codeGenResult AST_binary::generate_code()
             }
             else
             {
-                throw std::runtime_error("Unsupported operation * on non-integer types");
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation * on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation * on non-integer types");
             }
         }
         else if (op == "/")
@@ -543,7 +557,8 @@ codeGenResult AST_binary::generate_code()
             }
             else
             {
-                throw std::runtime_error("Unsupported operation / on non-integer types");
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation / on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation / on non-integer types");
             }
         }
         else if (op == "%")
@@ -558,7 +573,8 @@ codeGenResult AST_binary::generate_code()
             }
             else
             {
-                throw std::runtime_error("Unsupported operation % on non-integer types");
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation % on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation % on non-integer types");
             }
         }
         else if (op == "=")
@@ -566,7 +582,8 @@ codeGenResult AST_binary::generate_code()
             // Ensure LHS is a variable
             if (LHS->type != AST_type::VARIABLE)
             {
-                throw std::runtime_error("Left-hand side of assignment must be a variable");
+                throw Error(ErrorType::SEMANTIC_ERROR, "Left-hand side of assignment must be a variable", line);
+                // throw std::runtime_error("Left-hand side of assignment must be a variable");
             }
 
             // Ensure LHS and RHS are the same type
@@ -610,11 +627,16 @@ codeGenResult AST_binary::generate_code()
                 // throw std::runtime_error("Unsupported operation = on non-matching types");
             }
 
-            if(lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::VAR_FLOAT || rhsReg.type == res_type::FLOAT)){
+            if (lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::VAR_FLOAT || rhsReg.type == res_type::FLOAT))
+            {
                 asmFile << "    movss " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
-            }else if(lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::VAR_INTEGER || rhsReg.type == res_type::INTEGER)){
+            }
+            else if (lhsReg.type == res_type::VAR_FLOAT && (rhsReg.type == res_type::VAR_INTEGER || rhsReg.type == res_type::INTEGER))
+            {
                 asmFile << "    cvtsi2ss " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
-            }else{
+            }
+            else
+            {
                 asmFile << "    mov " << lhsReg.registerName << ", " << rhsReg.registerName << std::endl;
             }
 
@@ -622,157 +644,203 @@ codeGenResult AST_binary::generate_code()
             metadata data = SYMBOL_TABLE->getVariable(dynamic_cast<AST_variable *>(LHS)->name, line);
 
             asmFile << "    mov [rbp - " << data.relative_address << "], " << lhsReg.registerName << "; store to lhs" << std::endl;
-        }else if(op == "=="){
+        }
+        else if (op == "==")
+        {
             // COMPARE : EQUAL
             if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
-              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+                (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
             {
                 asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
                 asmFile << "    sete al\n";
                 asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
-                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    sete al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
-                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    sete al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_STRING || lhsReg.type == res_type::STRING) &&
-                (rhsReg.type == res_type::VAR_STRING || rhsReg.type == res_type::STRING)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    sete al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else{
-                throw std::runtime_error("Unsupported operation == on non-matching types");
             }
-        }else if(op == "!="){
+            else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                     (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    sete al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                     (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    sete al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_STRING || lhsReg.type == res_type::STRING) &&
+                     (rhsReg.type == res_type::VAR_STRING || rhsReg.type == res_type::STRING))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    sete al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else
+            {
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation == on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation == on non-matching types");
+            }
+        }
+        else if (op == "!=")
+        {
             // COMPARE : NOT EQUAL
             if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
-              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+                (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
             {
                 asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
                 asmFile << "    setne al\n";
                 asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
-                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setne al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
-                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setne al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_STRING || lhsReg.type == res_type::STRING) &&
-                (rhsReg.type == res_type::VAR_STRING || rhsReg.type == res_type::STRING)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setne al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else{
-                throw std::runtime_error("Unsupported operation != on non-matching types");
             }
-        }else if(op == "<"){
+            else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                     (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setne al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                     (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setne al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_STRING || lhsReg.type == res_type::STRING) &&
+                     (rhsReg.type == res_type::VAR_STRING || rhsReg.type == res_type::STRING))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setne al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else
+            {
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation != on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }
+        else if (op == "<")
+        {
             // COMPARE : LESS THAN
             if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
-              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+                (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
             {
                 asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
                 asmFile << "    setl al\n";
                 asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
-                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setl al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
-                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setl al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else{
-                throw std::runtime_error("Unsupported operation != on non-matching types");
             }
-        }else if(op == "<="){
+            else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                     (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setl al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                     (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setl al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else
+            {
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation != on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }
+        else if (op == "<=")
+        {
             // COMPARE : LESS THAN OR EQUAL
             if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
-              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+                (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
             {
                 asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
                 asmFile << "    setle al\n";
                 asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
-                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setle al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
-                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setle al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else{
-                throw std::runtime_error("Unsupported operation != on non-matching types");
             }
-        }else if(op == ">"){
+            else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                     (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setle al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                     (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setle al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else
+            {
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation != on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }
+        else if (op == ">")
+        {
             // COMPARE : GREATER THAN
             if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
-              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+                (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
             {
                 asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
                 asmFile << "    setg al\n";
                 asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
-                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setg al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
-                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setg al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else{
-                throw std::runtime_error("Unsupported operation != on non-matching types");
             }
-        }else if(op == ">="){
+            else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                     (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setg al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                     (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setg al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else
+            {
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation != on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }
+        else if (op == ">=")
+        {
             // COMPARE : GREATER THAN OR EQUAL
             if ((lhsReg.type == res_type::INTEGER || lhsReg.type == res_type::VAR_INTEGER) &&
-              (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
+                (rhsReg.type == res_type::INTEGER || rhsReg.type == res_type::VAR_INTEGER))
             {
                 asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
                 asmFile << "    setge al\n";
                 asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
-                (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setge al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else if((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
-                (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR)
-            ){
-                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
-                asmFile << "    setge al\n";
-                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
-            }else{
-                throw std::runtime_error("Unsupported operation != on non-matching types");
             }
-        }else if(op == "&&"){
+            else if ((lhsReg.type == res_type::VAR_BOOLEAN || lhsReg.type == res_type::BOOLEAN) &&
+                     (rhsReg.type == res_type::VAR_BOOLEAN || rhsReg.type == res_type::BOOLEAN))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setge al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else if ((lhsReg.type == res_type::VAR_CHAR || lhsReg.type == res_type::CHAR) &&
+                     (rhsReg.type == res_type::VAR_CHAR || rhsReg.type == res_type::CHAR))
+            {
+                asmFile << "    cmp " << lhsReg.registerName << ", " << rhsReg.registerName << "\n";
+                asmFile << "    setge al\n";
+                asmFile << "    movzx " << lhsReg.registerName << ", al\n";
+            }
+            else
+            {
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported operation != on non-matching types", line);
+                // throw std::runtime_error("Unsupported operation != on non-matching types");
+            }
+        }
+        else if (op == "&&")
+        {
             // COMPARE : AND
             std::string uniqueLabel = std::to_string(get_unique_label());
 
@@ -794,7 +862,9 @@ codeGenResult AST_binary::generate_code()
 
             // End label
             asmFile << ".Lend_" << uniqueLabel << ":\n";
-        }else if(op == "||"){
+        }
+        else if (op == "||")
+        {
             // COMPARE : OR
             std::string uniqueLabel = std::to_string(get_unique_label());
 
@@ -835,8 +905,8 @@ codeGenResult AST_binary::generate_code()
 codeGenResult AST_block::generate_code()
 {
     SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
-    //SYMBOL_TABLE = SYMBOL_TABLE->traverseIN();
-    //SYMBOL_TABLE->scopeIn();
+    // SYMBOL_TABLE = SYMBOL_TABLE->traverseIN();
+    // SYMBOL_TABLE->scopeIn();
 
     // ALLOCATE STACK SPACE FOR BLOCK
     int alignedScopeSize = (SYMBOL_TABLE->scope_size + 15) & ~15;
@@ -852,8 +922,8 @@ codeGenResult AST_block::generate_code()
     asmFile << "    add rsp, " << alignedScopeSize << "  ; Deallocate stack space for block\n";
     GLOBAL_ADDRESS -= alignedScopeSize;
 
-    //SYMBOL_TABLE->scopeOut();
-    //SYMBOL_TABLE = SYMBOL_TABLE->traverseOUT();
+    // SYMBOL_TABLE->scopeOut();
+    // SYMBOL_TABLE = SYMBOL_TABLE->traverseOUT();
     SYMBOL_TABLE = SYMBOL_TABLE->scopeIn();
 
     codeGenResult res;
@@ -865,33 +935,33 @@ codeGenResult AST_conditional::generate_code()
 {
     codeGenResult res;
 
-    for (const auto &branch : branches){
+    for (const auto &branch : branches)
+    {
         // Generate code for the condition
         codeGenResult conditionResult = branch.condition->generate_code();
 
         // if (conditionResult.type == res_type::VAR_BOOLEAN)
         // {
-            // Load the value of the boolean variable into a different register
+        // Load the value of the boolean variable into a different register
         std::string destRegister = regManager.getFreeRegister(); // Get a new register
         asmFile << "    mov " << destRegister << ", " << conditionResult.registerName << "\n";
-        
+
         // Now, conditionResult.registerName can be released, as we have the value in a different register
         regManager.releaseRegister(conditionResult.registerName);
-        
+
         // Update the conditionResult.registerName to the new register
         conditionResult.registerName = destRegister;
         // }
         // else if (conditionResult.type != res_type::BOOLEAN)
         // {
         //     // ERROR
-        //     throw Error(ErrorType::TYPE_ERROR, "Condition in if statement must be boolean", line_counter);
+        //     throw Error(ErrorType::TYPE_ERROR, "Condition in if statement must be boolean", line);
         // }
 
         // Generate a unique label for the true branch
         std::string trueLabel = "L" + std::to_string(get_unique_label());
-         // Generate a unique label for the end of the conditional
+        // Generate a unique label for the end of the conditional
         std::string endLabel = "L" + std::to_string(get_unique_label());
-
 
         // Generate code for jumping to the true branch if the condition is true
         asmFile << "    cmp " << conditionResult.registerName << ", 0\n";
@@ -910,7 +980,6 @@ codeGenResult AST_conditional::generate_code()
 
     return res;
 }
-
 
 codeGenResult AST_loop::generate_code()
 {
@@ -952,7 +1021,8 @@ codeGenResult AST_loop::generate_code()
 codeGenResult AST_function::generate_code()
 {
     codeGenResult res;
-    throw std::runtime_error("Function not implemented yet");
+    throw Error(ErrorType::RUNTIME_ERROR, "Function not implemented yet", line);
+    // throw std::runtime_error("Function not implemented yet");
     return res;
 }
 
@@ -968,14 +1038,16 @@ codeGenResult AST_function_call::generate_code()
     }
 
     codeGenResult res;
-    throw std::runtime_error("Function call not implemented yet");
+    throw Error(ErrorType::RUNTIME_ERROR, "Function not implemented yet", line);
+    // throw std::runtime_error("Function call not implemented yet");
     return res;
 }
 
 codeGenResult AST_return::generate_code()
 {
     codeGenResult res;
-    throw std::runtime_error("Return not implemented yet");
+    throw Error(ErrorType::RUNTIME_ERROR, "Return not implemented yet", line);
+    // throw std::runtime_error("Return not implemented yet");
     return res;
 }
 
