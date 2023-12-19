@@ -304,7 +304,7 @@ codeGenResult CALL_read(AST_function_call *call)
             else
             {
                 // ERROR
-                throw Error(ErrorType::TYPE_ERROR, "Unsupported parameter type for read function", call->line);
+                throw Error(ErrorType::SEMANTIC_ERROR, "Unsupported parameter type for read function", call->line);
                 // throw std::runtime_error("Unsupported parameter type for read function");
             }
         }
