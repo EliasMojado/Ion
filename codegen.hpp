@@ -458,8 +458,31 @@ codeGenResult AST_variable::generate_code()
 
 codeGenResult AST_unary::generate_code()
 {
+    // codeGenResult res;
+    // throw std::runtime_error("Unary not implemented yet");
+    // return res;
+
     codeGenResult res;
-    throw std::runtime_error("Unary not implemented yet");
+
+    // Generate code for the expression
+    codeGenResult exprReg = expr->generate_code();
+
+    // Check if the operation is logical NOT
+    if (op == "!")
+    {
+        // Perform logical NOT operation
+        // XOR the value with 1 to invert it
+        asmFile << "    xor " << exprReg.registerName << ", 1\n";
+
+        // Set the result type to BOOLEAN
+        res.type = res_type::BOOLEAN;
+        res.registerName = exprReg.registerName;
+    }
+    else
+    {
+        throw std::runtime_error("Unsupported unary operation: " + op);
+    }
+
     return res;
 }
 
