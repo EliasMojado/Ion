@@ -1,14 +1,24 @@
-TO COMPILE THE FILE:
+## How to compile and run the code?
+
+# compile the code
+
+STEP 1: 
+COMPILE THE FILE:
 ```g++ ion.cpp -o ion```
 
-TO PARSE THE CODE FILE:
+STEP 2: 
+PARSE THE CODE FILE:
 ```./ion {fileName}.ion```
 
     for example:
     ```./ion test.ion```
 
-TO GENERATE THE CODE TO ASM:
+# run the code
+
+STEP 3:
+GENERATE THE CODE TO ASM:
 ```./fasm test.asm```
 
-TO RUN THE CODE:
+STEP 4:
+RUN THE CODE:
 ``` ./test ```
