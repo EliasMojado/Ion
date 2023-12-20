@@ -7,14 +7,16 @@
 #include <stack>
 #include <queue>
 
-
+// Singleton class to keep track of the current line number
 class LineNumber {
 public:
+    // Returns the single instance of the LineNumber class
     static LineNumber& getInstance() {
         static LineNumber instance;
         return instance;
     }
 
+    // Returns the current line number
     int getLine() const {
         return line;
     }
@@ -26,8 +28,10 @@ public:
 private:
     int line = 0; 
 
+    // Private constructor to prevent direct instantiation
     LineNumber() {}
 
+    // Delete the copy constructor and assignment operator to prevent copying
     LineNumber(LineNumber const&) = delete;
     void operator=(LineNumber const&) = delete;
 };

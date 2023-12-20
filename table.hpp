@@ -1,3 +1,7 @@
+/**
+ * @file table.hpp
+ * @brief This file contains the definition of the Table class and related data structures and functions.
+ */
 #ifndef TABLE_HPP
 #define TABLE_HPP
 

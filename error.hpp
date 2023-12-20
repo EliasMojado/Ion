@@ -10,6 +10,7 @@
 enum class ErrorType;
 std::string ErrorTypeToString(ErrorType type);
 
+// Function to generate assembly code for a write function call
 enum class ErrorType
 {
     SYNTAX_ERROR,    // grammar violation
@@ -21,6 +22,7 @@ enum class ErrorType
     FUNCTION_ERROR,  // invalid parameters
 };
 
+// Class to represent an error
 class Error
 {
 public:
@@ -57,14 +59,21 @@ private:
     bool hasError_;
 };
 
+// Function to convert an ErrorType enum value to a string
+/**
+ * Converts an ErrorType enum value to its corresponding string representation.
+ *
+ * @param type The ErrorType enum value to convert.
+ * @return The string representation of the ErrorType.
+ */
 std::string ErrorTypeToString(ErrorType type)
 {
     switch (type)
     {
     case ErrorType::SYNTAX_ERROR:
-        return "Syntax Error";
+        return "Syntax Error";          
     case ErrorType::SCOPE_ERROR:
-        return "Scope Error";
+        return "Scope Error";    
     case ErrorType::FUNCTION_ERROR:
         return "Function Error";
     case ErrorType::RUNTIME_ERROR:

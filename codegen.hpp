@@ -169,6 +169,7 @@ void generate_code(AST_program *program, std::string programName)
     asmFile.close(); // Close the file
 }
 
+// Function to generate assembly code for a write function call
 codeGenResult CALL_write(AST_function_call *call)
 {
     for (auto &param : call->parameters)
@@ -246,6 +247,7 @@ codeGenResult CALL_write(AST_function_call *call)
     return res;
 }
 
+// Function to generate assembly code for a read function call
 codeGenResult CALL_read(AST_function_call *call)
 {
     try
